@@ -1,3 +1,4 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html
   xmlns="http://www.w3.org/1999/xhtml"
   xmlns:py="http://genshi.edgewall.org/"
@@ -15,6 +16,13 @@
 
   <link rel="stylesheet" href="http://m.okfn.org/kforge/css/master.css" type="text/css" media="screen, print" title="Master stylesheet" charset="utf-8" />
   <link rel="stylesheet" href="/css/ckan.master.css" type="text/css" media="screen, print" />
+  <link rel="stylesheet" href="/css/ckan.master.css" type="text/css" media="screen, print" />
+
+	<link type="text/css" rel="stylesheet" media="all" href="http://datadotgc.ca/sites/default/themes/descartes/style.css?z" />
+	<link type="text/css" rel="stylesheet" media="all" href="http://datadotgc.ca/sites/default/themes/descartes/styles/reset.css?z" />
+	<link type="text/css" rel="stylesheet" media="all" href="http://datadotgc.ca/sites/default/themes/descartes/styles/blocks.css?z" />
+	<link type="text/css" rel="stylesheet" media="all" href="http://datadotgc.ca/sites/default/themes/descartes/styles/layout.css?z" />
+	<link type="text/css" rel="stylesheet" media="all" href="http://datadotgc.ca/sites/default/themes/descartes/styles/html.css?z" />
 
   <!--[if IE]>
   <link rel="stylesheet" href="/css/ie.css" type="text/css" media="screen, print" />
@@ -28,6 +36,12 @@
   <py:if test="defined('optional_head')">
     ${optional_head()}
   </py:if>
+  
+  <!-- Typekit embed code -->
+  <script type="text/javascript" src="http://use.typekit.com/wty5dhe.js"></script>
+	<script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+  <!-- /Typekit -->
+  
 </head>
 
 <body class="yui-skin-sam">
@@ -35,50 +49,32 @@
   <!--[if IE]>
     <hr class="holder" />
   <![endif]-->
-  <div id="top">
-    <div id="top-inner">
-      <div id="top-bar">
-        <topbar py:choose="">
-          <p py:when="c.user">
-            Logged in as <strong>${h.icon('openid')} ${c.user}</strong>
-            &middot; <a href="${h.url_for(controller='user',action=None)}">My account</a>
-            &middot; <a href="${h.url_for('/logout_openid')}">Logout</a>
-          </p>
-          <p py:otherwise="">
-            <a href="${h.url_for(controller='user',action='login', id=None)}">Login with ${h.icon('openid')} OpenID</a>
-          </p>
-        </topbar>
-      </div><!-- /top-bar -->
-
-      <h1>
-        <a href="${h.url_for('home')}"><img style="padding: 0; margin-top: -10px; margin-bottom: -10px;" src="/images/ckan_logo_fullname_long.png" alt="CKAN Logo" /></a>
-        <!-- <a href="/" title="CKAN Home">Comprehensive Knowledge Archive Network</a> -->
-      </h1>
-
-    </div><!-- /top-inner -->
-
-    <h3 class="hidden">Sections:</h3>
-    <ul id="navigation">
-      <li>${h.nav_link(c, _('Home'), controller='home', action='index')}</li>
-      <li>${h.nav_link(c, _('Packages'), controller='package', action='index')}</li>
-      <li>${h.nav_link(c, _('Tags'), controller='tag', action='index')}</li>
-      <li>${h.nav_link(c, _('Groups'), controller='group', action='index')}</li>
-      <li>${h.nav_link(c, _('Recent changes'), controller='revision', action='index')}</li>
-			<li>${h.nav_link(c, _('API'), controller='rest', action='index')}</li>
-    </ul>
-    <h3 class="hidden">In this section:</h3>
-    <!--! This is a default (blank) subnav. -->
-    <py:match path="minornavigation"></py:match>
-    <ul id="subnav"><minornavigation></minornavigation></ul>
-
-    <!--[if IE]>
-    <hr class="holder" />
-    <![endif]-->
-
-  </div><!-- /top -->
 
   <p class="hidden"><a href="#main" title="Skip to page content">[ Skip to main content ]</a></p>
 
+
+
+<!-- hd from datadotgc -->
+<div id="hd">
+      <div id="site-name"><a href="http://datadotgc.ca/" title="Go to home page..." class="tk-museo active">datadotgc.ca</a></div><!-- /site-name -->
+      <div class="block block-block tk-museo-sans" id="block-block-6">
+			<div class="content">
+				<div class="openid-link first" style="clear: both; text-align: right;">
+					<a style="background: transparent url(http://www.datadotgc.ca/modules/openid/login-bg.png) no-repeat 0 0; padding-left: 20px;" href="http://ca.ckan.net/user/login">Log in using OpenID</a>
+				</div>
+			</div>
+</div>
+
+	<ul class="links primary-links">
+		<li class="menu-524 active-trail first active"><a href="http://datadotgc.ca/" title="" class="active">Home</a></li>
+		<li class="menu-435"><a href="http://datadotgc.ca/about" title="About">About</a></li>
+		<li class="menu-565"><a href="http://datadotgc.ca/data" title="Data">Data</a></li>
+		<li class="menu-434"><a href="http://datadotgc.ca/faq" title="FAQ">FAQ</a></li>
+		<li class="menu-441"><a href="http://datadotgc.ca/how-get-involved" title="How to Get Involved">How to Get Involved</a></li>
+		<li class="menu-442 last"><a href="http://ca.ckan.net/package/new" title="">Liberate a Data Set</a></li>
+	</ul>
+    </div><!-- /hd -->
+	
   <div id="primary" class="sidebar">
     <primarysidebar>
     <!-- Primary Side Bar Goes Here -->
@@ -94,7 +90,8 @@
       <p>Master content template placeholder &hellip; please replace me.</p>
     </content>
 
-    <div id="footer">
+
+    <!--<div id="footer">
       <p>
         <a href="http://validator.w3.org/check/referer" title="Valid XHTML 1.1">XHTML</a>
         | <a href="http://jigsaw.w3.org/css-validator/check/referer">CSS</a>
@@ -118,13 +115,22 @@
             src="http://m.okfn.org/images/ok_buttons/od_80x15_blue.png"
             alt="This Content and Data is Open" /></a>
       </p>
-    </div><!-- /footer -->
+    </div>--><!-- /footer -->
 
     <!--[if IE]>
     <hr class="main" />
     <![endif]-->
 
   </div><!-- /main -->
+
+	<div id="ft">
+	            <div class="block block-block with-block-editing tk-museo-sans" id="block-block-7">
+			<div class="content"><p>This is not an official Government of Canada website. Rather, it’s a collaborative effort by <a href="http://datadotgc.ca/about">a group of citizens</a> who want our governments to open their data — in useful, structured formats — so we’re showing them how it could be done.</p>
+	<p>This site is powered by <a href="http://drupal.org">Drupal</a> and <a href="http://ckan.net">CKAN</a> (the Comprehensive Knowledge Archive Network, which is a project of the <a href="http://www.okfn.org">Open  Knowledge Foundation</a>). You can read more about the project <a href="http://datadotgc.ca/about">here</a>.</p>
+
+	</div>
+</div>
+	    </div><!-- /ft -->
 
 </div><!-- /airlock -->
 

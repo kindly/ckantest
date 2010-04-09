@@ -1,0 +1,321 @@
+/* DataDotGC.ca */
+/* Design and Development by Raised Eyebrow Web Studio */
+
+/* copied from html.css */
+body {
+	background-color:#ffffff !important;
+	background-image:none !important;
+	color:#000000 !important;
+	font-family: "museo-sans-1","museo-sans-2", "Helvetica Neue", Helvetica, Arial, sans-serif !important; 
+	font-size:100%;
+	line-height: normal;
+	font-size: 0.88em/1.43em !important; /* 14px, 20px; */
+}
+
+p {
+	margin-bottom:0.69em !important;	/*9px*/
+}
+
+a {
+  color:#bb0000 !important;
+  text-decoration:none !important;
+}
+
+fieldset {
+	-moz-border-radius:10px;
+  background:#f8f8f8;
+  padding:10px;
+}
+
+/* Tables */
+table {
+  border:5px solid #fff;
+  background:#f0f8fa;
+  font-size:13px;
+  margin:0px 0px 20px;
+}
+
+table tr.odd { background:#f0f8fa; }
+
+table thead tr,
+table tr.even { background:#f6fbfc; }
+
+table td,
+table th {
+  border:1px solid #fff;
+  padding:5px 10px 4px;
+  vertical-align:top;
+}
+  
+h1, h2, h3 {
+	font-family: "museo-1","museo-2", "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+}
+/* /html.css */
+
+
+a:hover {
+	background-color: none !important;
+}
+
+
+.tk-museo-sans  {
+	font-family:"museo-sans-1","museo-sans-2","Helvetica Neue","Helvetica","Arial",sans-serif;
+}
+
+#dc-container,
+#airlock {
+	margin:0 auto !important;
+	width:960px !important;
+}
+	
+/* Header Styles */
+#top {
+	/*padding-top:20px;*/
+	position:relative;
+	display:block;
+	height:170px;
+}
+
+#top-inner {
+	margin: 0px !important;
+}
+
+#top #site-name {
+  font-size:2.15em;	/*28px*/
+  letter-spacing:-1px;
+}
+
+#top #site-name a {
+	display:block;
+	width:323px;
+	height: 82px;
+	background-image: url("images/datadotgc_logo.gif");
+	text-indent: -9000px;
+	position: absolute;
+	top:38px;
+	left:0px;
+}
+
+
+
+#top {
+	height:200px;
+	display:block;
+}
+
+/* OpenID login container */
+#top-bar {
+	border-bottom:0px !important;
+	text-align: right !important;
+}
+
+topbar p {
+	position:relative;
+	display: block !important; 
+	height:20px;
+	width: 900px;
+}
+
+
+topbar a {
+	top:50px;
+	right:0;
+	padding-left:20px;
+	display:block;
+	/*font-weight:500;*/
+	position:absolute;
+	background: url('../images/icons/openid.png') no-repeat left center #fff;
+}
+
+topbar a:hover {
+	background: url('../images/icons/openid.png') no-repeat left center #fff;
+}
+
+#top-inner {
+	border-bottom:0px;
+}
+
+
+/* main menu */
+#navigation {
+	font-family:"museo-1","museo-2","Helvetica Neue","Helvetica","Arial",sans-serif !important;
+	border-bottom:1px solid #CBCBCB !important;
+	border-top:3px solid #000000 !important;
+	clear:both;
+	display:block;
+	font-size:1.29em;
+	height:38px !important;
+	left:0;
+	position:absolute;
+	top:127px;
+	width:960px;
+	margin: 0px !important;
+}
+
+#navigation li {
+	padding-left:0px;
+	/*height:38px;*/
+	display:block;
+	float:left;
+	background-color: #ffffff !important;
+}
+
+#navigation li a,
+#navigation li a:link,
+#navigation li a:visited {
+  color:#000000 !important;
+ 	background-color:none !important;
+	/*height:38px;*/
+	/*display:block;*/
+	margin:7px 0px 0px 6px;
+	padding:0 30px 0 0;
+	background:none repeat scroll 0 0 none !important;
+	background-color: #ffffff !important;
+}
+
+#navigation a:hover,
+#navigation a.active {
+ 	color:#cc0000;
+	background-color: #ffffff !important;
+  border-top:#cc0000 solid 6px;
+  margin: -3px 0 0 6px !important;
+  padding:4px 30px 0 0px !important;
+}
+
+/* todo: get this to indicate first */
+#navigation li.first a {
+	margin-left:0px !important;
+}
+
+/* submenu */
+#subnav {
+	position:absolute;
+	display:block;
+	top:168px;
+	left:0px;
+	margin:0px;
+}
+
+
+#main {
+	left:0px;
+	position: relative;
+}
+
+
+
+
+/* CKAN Search block */
+#search_form {
+	background-color: #000;
+	color: #ffffff;
+	display:block;
+	height: 60px;
+	width: 960px;
+	position: relative;
+	padding-top:0px;
+}
+
+
+#search_form h3 {
+ 	font-size: 	1.57em; /* 22px */
+ 	border:0px;
+	position: absolute;
+ 	display: block;
+ 	left:12px;
+ 	bottom:6px;
+ 	margin:0px;
+}
+
+#search_form .form_content {
+	display:block;
+	position: absolute;
+	left: 200px;
+	bottom:13px;
+	padding:0px;
+	margin:0px;
+}
+
+/*#block-ckan-0 .form-item {
+	padding:0px;
+	margin:0px;
+}*/
+
+#search_form label {
+	color:#fff;
+}
+
+#edit-filters-open-wrapper {
+	display: block;
+	position: absolute;
+	left: 287px;
+	bottom: 0px;
+	width:130px;
+	padding:0px;
+	margin:0px;
+}
+
+#edit-filters-down-wrapper {
+	display: block;
+	position: absolute;
+	left: 433px;
+	bottom: 0px;
+	width:150px;
+	padding:0px;
+	margin:0px;
+}
+
+
+#search_form #q {
+	border:0px;
+	background:#545454;
+	color: #999999;
+	width: 280px;
+	height:36px;
+	left:0px;
+	bottom:0px;
+	position:absolute;
+	font-size: 1.29em; /* 18px */
+}
+
+/*#block-ckan-0 .form-checkboxes {
+	margin:0px;
+	padding:0px;
+}
+
+#block-ckan-0 .form-checkboxes div {
+	float: left;
+	margin:0px;
+	padding:0px;
+}
+
+#block-ckan-0 .form-checkbox {
+	background: url("../images/search_checkbox.gif");
+	text-indent:-9000px;
+	display:block;
+	width: 15px;
+	height: 15px;
+	border: 0px;
+}*/
+
+#search_form #search {
+	clear:both;
+	display:block;
+	width:57px;
+	height:36px;
+	background:url("../images/search_go.gif") no-repeat;
+	text-indent: -9000px;
+	border:0px;
+	position:absolute;
+	left: 685px;
+	bottom:0px;
+}
+
+/* Package forms */
+form div {
+	margin-bottom: 20px;
+}
+
+
+
+
