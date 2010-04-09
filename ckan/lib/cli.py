@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 
 import paste.script
 
@@ -45,7 +46,7 @@ class ManageDb(CkanCommand):
     db load-data4nr {file-path.csv}
     db load-cospread {file-path.csv}
     db load-esw {file-path.txt} [{host} {api-key}]
-    db load-ons [{file-path.csv}|recent|all]
+    db load-ons [{file-path.csv}|recent|days={num-days}|all]
     db migrate06
     db migrate09a
     db migrate09b
@@ -57,14 +58,21 @@ class ManageDb(CkanCommand):
     min_args = 1
 
     def command(self):
+        # Avoids vdm logging warning
+        logging.basicConfig(level=logging.ERROR)
+        
         self._load_config()
         from ckan import model
 
         cmd = self.args[0]
         if cmd == 'create':
             model.repo.create_db()
+            if self.verbose:
+                print 'Creating DB: SUCCESS'
         elif cmd == 'init':
             model.repo.init_db()
+            if self.verbose:
+                print 'Initialising DB: SUCCESS'
         elif cmd == 'clean' or cmd == 'drop':
             model.repo.clean_db()
             if self.verbose:
@@ -220,11 +228,11 @@ class ManageDb(CkanCommand):
 
     def load_ons(self):
         if len(self.args) < 2:
-            print 'Need xml file path or "all" or "recent".'
+            print 'Need xml file path or "all" or "recent" or "days=x".'
             return
         arg = self.args[1]
-        if arg == 'recent' or arg == 'all':
-            import ckan.lib.ons_data
+        if arg == 'recent' or arg == 'all' or arg.startswith('days'):
+            import ckan.getdata.ons_download as ons
             if len(self.args) < 3:
                 ons_cache_dir = '~/ons_data'
                 print 'Defaulting ONS cache dir: %s' % ons_cache_dir
@@ -236,9 +244,12 @@ class ManageDb(CkanCommand):
             print 'Creating dir: %s' % ons_cache_dir
             os.makedirs(ons_cache_dir)
         if arg == 'recent':
-            new_packages, num_packages_after = ckan.lib.ons_data.import_recent(ons_cache_dir)
+            new_packages, num_packages_after = ons.import_recent(ons_cache_dir)
+        elif arg.startswith('days='):
+            days = int(arg.split('=')[1])
+            new_packages, num_packages_after = ons.import_recent(ons_cache_dir, days=days)
         elif arg == 'all':
-            new_packages, num_packages_after = ckan.lib.ons_data.import_all(ons_cache_dir)
+            new_packages, num_packages_after = ons.import_all(ons_cache_dir)
         else:
             # filename given
             import ckan.getdata.ons_hub as data_getter
@@ -381,7 +392,7 @@ class Sysadmin(CkanCommand):
         user = model.User.by_name(unicode(username))
         if not user:
             print 'User "%s" not found - creating' % username
-            user = model.User(name=username)
+            user = model.User(name=unicode(username))
         model.add_user_to_role(user, model.Role.ADMIN, model.System())
         model.repo.commit_and_remove()
 

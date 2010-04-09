@@ -110,21 +110,6 @@ h1, h2, h3, h4, h5, h6 {
 /* = Changes/additions to kforge forms.css = */
 /* ========================================= */
 
-.field_error {
-	padding: 2px;
-	background-color: #c00;
-	display: table;
-	margin-left: 1em;
-}
-
-.field_error span,
-.field_error input,
-.field_error select,
-.field_error textarea
-{
-	margin: 0;
-}
-
 input.openid {
 	background: transparent url(../images/icons/openid.png) 2px 2px no-repeat;
 	padding-left: 22px;
@@ -358,7 +343,7 @@ ul.packages {
 	margin-bottom: 0;
 }
 
-.package .name {
+.package .name, .group .name {
 	color: #888;
 	font-family: monospace;
 }
@@ -367,7 +352,7 @@ ul.packages {
 	text-decoration: none;
 }
 
-.package .notes {
+.package .notes, .group .description {
 	width: 65%;
 	padding: 0.2em 0 0.2em 1%;
 	margin: 0 3% 0.5 0 ! important;

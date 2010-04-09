@@ -54,6 +54,12 @@ enable_caching =
 # e.g. rdf_packages = http://semantic.ckan.net/data/
 rdf_packages =
 
+# Location of licenses group (defaults to local Python licenses package)
+#licenses_group_url = http://licenses.opendefinition.org/2.0/ckan_original
+
+# Package form to use
+package_form = standard
+
 # Logging configuration
 [loggers]
 keys = root
