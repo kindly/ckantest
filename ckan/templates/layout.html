@@ -30,6 +30,7 @@
 	<link type="text/css" rel="stylesheet" media="all" href="http://datadotgc.ca/sites/default/themes/descartes/styles/layout.css?z" />
 	<link type="text/css" rel="stylesheet" media="all" href="http://datadotgc.ca/sites/default/themes/descartes/styles/html.css?z" />
 
+
   <!--[if IE]>
   <link rel="stylesheet" href="/css/ie.css" type="text/css" media="screen, print" />
   <![endif]-->
@@ -48,7 +49,7 @@
   
 </head>
 
-<body>
+<body class="">
 <div id="airlock">
   <!--[if IE]>
     <hr class="holder" />
@@ -56,31 +57,31 @@
 
   <p class="hidden"><a href="#main" title="Skip to page content">[ Skip to main content ]</a></p>
 
-
-
-<!-- hd from datadotgc -->
-<div id="hd">
-      <div id="site-name"><a href="http://datadotgc.ca/" title="Go to home page..." class="tk-museo active">datadotgc.ca</a></div><!-- /site-name -->
-      <div class="block block-block tk-museo-sans" id="block-block-6">
+	<!-- hd from datadotgc -->
+	<div id="hd">
+	  <div id="site-name"><a href="http://datadotgc.ca/" title="Go to home page..." class="tk-museo active">datadotgc.ca</a></div><!-- /site-name -->
+	  <div class="block block-block tk-museo-sans" id="block-block-6">
 			<div class="content">
 				<div class="openid-link first" style="clear: both; text-align: right;">
 					<a style="background: transparent url(http://www.datadotgc.ca/modules/openid/login-bg.png) no-repeat 0 0; padding-left: 20px;" href="http://ca.ckan.net/user/login">Log in using OpenID</a>
 				</div>
 			</div>
-</div>
+		</div>
 
-	<ul class="links primary-links">
-		<li class="menu-524 active-trail first active"><a href="http://datadotgc.ca/" title="" class="active">Home</a></li>
-		<li class="menu-435"><a href="http://datadotgc.ca/about" title="About">About</a></li>
-		<li class="menu-565"><a href="http://datadotgc.ca/data" title="Data">Data</a></li>
-		<li class="menu-434"><a href="http://datadotgc.ca/faq" title="FAQ">FAQ</a></li>
-		<li class="menu-441"><a href="http://datadotgc.ca/how-get-involved" title="How to Get Involved">How to Get Involved</a></li>
-		<li class="menu-442 last"><a href="http://ca.ckan.net/package/new" title="">Liberate a Data Set</a></li>
-	</ul>
+		<ul class="links primary-links">
+			<li class="menu-524"><a href="http://datadotgc.ca/" title="" class="active">Home</a></li>
+			<li class="menu-435"><a href="http://datadotgc.ca/about" title="About">About</a></li>
+			<li class="menu-565"><a href="http://datadotgc.ca/data" title="Data">Data</a></li>
+			<li class="menu-434"><a href="http://datadotgc.ca/faq" title="FAQ">FAQ</a></li>
+			<li class="menu-443"><a href="http://datadotgc.ca/contact" title="">Feedback</a></li>
+			<li class="menu-441"><a href="http://datadotgc.ca/how-get-involved" title="How to Get Involved">How to Get Involved</a></li>
+			<li class="menu-442 last active-trail first active	"><a href="http://ca.ckan.net/package/new" title="">Liberate a Data Set</a></li>
+		</ul>
+		
     <h3 class="hidden">In this section:</h3>
     <!--! This is a default (blank) subnav. -->
-    <py:match path="minornavigation"></py:match>
-    <ul id="subnav"><minornavigation></minornavigation></ul>  
+    <!--<py:match path="minornavigation"></py:match>
+    <ul id="subnav"><minornavigation></minornavigation></ul>-->
   </div><!-- /hd -->
 	
   <div id="primary" class="sidebar">
@@ -95,10 +96,8 @@
 
   <div id="main">
     <content>
-      <p>Master content template placeholder &hellip; please replace me.</p>
+      <p></p>
     </content>
-
-
     <!--<div id="footer">
       <p>
         <a href="http://validator.w3.org/check/referer" title="Valid XHTML 1.1">XHTML</a>
@@ -132,14 +131,13 @@
   </div><!-- /main -->
 
 	<div id="ft">
-	            <div class="block block-block with-block-editing tk-museo-sans" id="block-block-7">
+		<div class="block block-block with-block-editing tk-museo-sans" id="block-block-7">
 			<div class="content"><p>This is not an official Government of Canada website. Rather, it’s a collaborative effort by <a href="http://datadotgc.ca/about">a group of citizens</a> who want our governments to open their data — in useful, structured formats — so we’re showing them how it could be done.</p>
-	<p>This site is powered by <a href="http://drupal.org">Drupal</a> and <a href="http://ckan.net">CKAN</a> (the Comprehensive Knowledge Archive Network, which is a project of the <a href="http://www.okfn.org">Open  Knowledge Foundation</a>). You can read more about the project <a href="http://datadotgc.ca/about">here</a>.</p>
-
-	</div>
-</div>
-	    </div><!-- /ft -->
-
+				<p>This site is powered by <a href="http://drupal.org">Drupal</a> and <a href="http://ckan.net">CKAN</a> (the Comprehensive Knowledge Archive Network, which is a project of the <a href="http://www.okfn.org">Open  Knowledge Foundation</a>). You can read more about the project <a href="http://datadotgc.ca/about">here</a>.</p>
+			</div>
+		</div>
+	</div><!-- /ft -->
+	
 </div><!-- /airlock -->
 
 <!--! No need to load GA in development -->

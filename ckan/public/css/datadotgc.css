@@ -6,7 +6,8 @@ body {
 	background-color:#ffffff !important;
 	background-image:none !important;
 	color:#000000 !important;
-	font-family: "museo-sans-1","museo-sans-2", "Helvetica Neue", Helvetica, Arial, sans-serif !important; 
+	/*font-family: "museo-sans-1","museo-sans-2", "Helvetica Neue", Helvetica, Arial, sans-serif !important;*/ 
+	font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 	font-size:100%;
 	line-height: normal;
 	font-size: 0.88em/1.43em !important; /* 14px, 20px; */

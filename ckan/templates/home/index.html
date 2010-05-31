@@ -27,6 +27,10 @@
       margin: 25px auto;
       text-align: center;
     }
+
+    #search_form {
+      margin-top: 3em;
+    }
   </style>
   </py:def>
 
@@ -61,7 +65,6 @@
 
     <xi:include href="../package/search_form.html" />
 
-    <h4>Top Tags</h4>
     <div id="tagcloud">
     <py:for each="tag_name, count in c.tag_counts">
       <a rel="${count}" title="${count}" href="${h.url_for(controller='tag',

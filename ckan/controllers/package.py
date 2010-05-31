@@ -139,8 +139,8 @@ class PackageController(BaseController):
                     if user:
                         admins = [user]
                 model.setup_default_user_roles(pkg, admins)
-
-                h.redirect_to(action='read', id=pkgname)
+                redirect('http://www.datadotgc.ca/dataset/%s' % h.url_escape(pkgname), code=303) 
+#                h.redirect_to(action='read', id=pkgname)
             except ValidationException, error:
                 fs = error.args[0]
                 c.form = self._render_edit_form(fs, request.params,
@@ -211,7 +211,8 @@ class PackageController(BaseController):
                 PackageSaver().commit_pkg(fs, id, pkg.id, log_message, c.author)
                 # do not use pkgname from id as may have changed
                 pkgname = fs.name.value
-                h.redirect_to(action='read', id=pkgname)
+                redirect('http://www.datadotgc.ca/update/%s' % h.url_escape(pkgname), code=303)
+#                h.redirect_to(action='read', id=pkgname)
             except ValidationException, error:
                 fs = error.args[0]
                 c.form = self._render_edit_form(fs, request.params,
