@@ -11,6 +11,7 @@ from routes.middleware import RoutesMiddleware
 from ckan.lib.queue_log import QueueLogMiddleware
 
 from ckan.config.environment import load_environment
+from ckan import hooks
 
 def make_app(global_conf, full_stack=True, static_files=True, **app_conf):
     """Create a Pylons WSGI application and return it
@@ -48,6 +49,7 @@ def make_app(global_conf, full_stack=True, static_files=True, **app_conf):
 
     # CUSTOM MIDDLEWARE HERE (filtered by error handling middlewares)
     #app = QueueLogMiddleware(app)
+    hooks.trigger(hooks.MAKE_APP, app)
     
     if asbool(full_stack):
         # Handle Python exceptions

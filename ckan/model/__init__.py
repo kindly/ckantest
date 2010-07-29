@@ -15,12 +15,15 @@ from changeset import Changeset, Change, Changemask
 from notifier import *
 
 import ckan.migration
+import ckan.hooks as hooks
 
 # set up in init_model after metadata is bound
 version_table = None
 
 def init_model(engine):
     '''Call me before using any of the tables or classes in the model'''
+    hooks.trigger(hooks.INIT_MODEL, engine)
+    
     meta.Session.configure(bind=engine)
     meta.engine = engine
     meta.metadata.bind = engine

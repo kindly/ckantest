@@ -64,7 +64,10 @@ setup(
     entry_points="""
     [paste.app_factory]
     main = ckan.config.middleware:make_app
-
+    
+    [paste.composite_factory]
+    plugins = ckan.config.plugins:plugin_loader
+    
     [paste.app_install]
     main = pylons.util:PylonsInstaller
 
