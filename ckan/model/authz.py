@@ -117,11 +117,16 @@ class UserObjectRole(DomainObject):
 
     @classmethod
     def _query(cls, user, role, domain_obj):
-        q = Session.query(cls).filter_by(role=role)
-        # some protected objects are not "contextual"
-        if cls.name is not None and domain_obj.__class__ != type:
-            # e.g. filter_by(package=domain_obj)
-            q = q.filter_by(**dict({cls.name: domain_obj}))
+        q = Session.query(UserObjectRole).filter_by(role=role)
+        
+        if domain_obj.__class__ == type: 
+            q = q.filter(context==domain_obj.__name__)
+        else:
+            q = q.with_polymorphic(cls)
+            # some protected objects are not "contextual"
+            if cls.name is not None:
+                # e.g. filter_by(package=domain_obj)
+                q = q.filter_by(**dict({cls.name: domain_obj}))
         q = q.filter_by(user=user)
         return q
 

@@ -117,7 +117,7 @@ class TestCreation(object):
         from pprint import pprint
         pprint(model.Session.query(model.UserObjectRole).all())
         pr = model.Session.query(model.UserObjectRole).filter_by(role=model.Role.ADMIN,)
-
+        print pr 
         assert len(pr.all()) == 1, pr.all()
 
 
