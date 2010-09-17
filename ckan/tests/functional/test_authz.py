@@ -324,7 +324,7 @@ class TestLockedDownUsage(TestUsage):
     @classmethod
     def setup_class(self):
         q = model.Session.query(model.RoleAction).filter(model.RoleAction.role==Role.READER)
-        q = q.filter(model.RoleAction.action==Action.PACKAGE_CREATE)
+        q = q.filter(model.RoleAction.action==Action.CREATE)
         model.Session.delete(q.first())
         
         model.Session.remove()
