@@ -18,11 +18,14 @@ __all__ = [
     'HarvestSource', 'harvest_source_table',
     'HarvestingJob', 'harvesting_job_table',
     'HarvestedDocument', 'harvested_document_table',
+    'HarvestingObjectNotFound',
 ]
 
 class HarvesterError(Exception): pass
 
 class HarvesterUrlError(HarvesterError): pass
+
+class HarvestingObjectNotFound(Exception): pass
 
 class DomainObject(DomainObject):
 
@@ -40,7 +43,7 @@ class DomainObject(DomainObject):
         if default != Exception:
             return default
         else:
-            raise Exception, "%s not found: %s" % (self.__name__, key)
+            raise HarvestingObjectNotFound("%s not found: %s" % (self.__name__, key))
 
     @classmethod 
     def filter(self, **kwds): 
