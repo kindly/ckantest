@@ -304,6 +304,7 @@ class HarvestingJob(DomainObject):
     def harvest_csw_documents(self, url):
         csw = CswService(url)
         records = csw.getrecords(esn="summary")
+        print csw._ows().response
         for record in records:
             records = csw.getrecordbyid(
                 ids = [record["identifier"]],
