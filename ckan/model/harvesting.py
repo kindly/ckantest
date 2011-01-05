@@ -9,8 +9,8 @@ from types import JsonType
 from core import *
 from domain_object import DomainObject
 from package import Package
-from ckan.lib.cswclient import CswClient
-from ckan.lib.cswclient import CswError
+
+from ckanext.ows.services import CswService
 
 log = logging.getLogger(__name__)
 
@@ -97,11 +97,19 @@ class HarvestSource(DomainObject):
         else:
             harvested_document = None
             package = None
+            
+        # the dutch sdi puts funny things like uuid|url
+        if "|" in gemini_values["guid"]:
+            guid, _unused = gemini_values["guid"].split("|", 1)
+        else:
+            guid = gemini_values["guid"]
+            
         package_data = {
-            'name': gemini_values['guid'],
+            'name': guid,
             'title': gemini_values['title'],
             'extras': gemini_values,
         }
+        
         if package == None:
             # Create package from data.
             try:
@@ -142,6 +150,8 @@ class HarvestSource(DomainObject):
                             attr_name = error[0].name
                             error_msg = error[1][0]
                             msg += ' %s: %s' % (attr_name.capitalize(), error_msg)
+                        from pprint import pprint
+                        pprint(package_data)
                         raise HarvesterError, msg
             except:
                 model.Session.rollback()
@@ -292,15 +302,19 @@ class HarvestingJob(DomainObject):
                     self.report_package(package.id)
 
     def harvest_csw_documents(self, url):
-        try:
-            csw_client = CswClient(base_url=url)
-            records = csw_client.get_records()
-        except CswError, error:
-            msg = "Couldn't get records from CSW: %s: %s" % (url, error)
-            self.report_error(msg)
-
-        for content in records:
-            self.harvest_document(content=content)
+        csw = CswService(url)
+        records = csw.getrecords(esn="summary")
+        for record in records:
+            records = csw.getrecordbyid(
+                ids = [record["identifier"]],
+                esn = "full",
+                )
+            ## temporary kludge to get xml that the
+            ## gemini stuff can parse
+            data = csw._ows().response
+            lines = [x for x in data.split("\n") if x.strip()]
+            data = lines[0] + "\n" + "\n".join(lines[2:-1])
+            self.harvest_document(content=data)
 
     def harvest_waf_documents(self, content):
         for url in self.extract_urls(content):
@@ -604,7 +618,7 @@ class GeminiDocument(MappedXmlDocument):
                 "gmd:language/gmd:LanguageCode/@codeListValue",
                 "gmd:language/gmd:LanguageCode/text()",
             ],
-            multiplicity="1",
+            multiplicity="0..1", #1
         ),
         GeminiElement(
             name="resource-type",
@@ -668,7 +682,7 @@ class GeminiDocument(MappedXmlDocument):
                 "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:identifier/gmd:RS_Identifier",
                 "gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:citation/gmd:CI_Citation/gmd:identifier/gmd:RS_Identifier",
             ],
-            multiplicity="1",
+            multiplicity="0..1", #1
         ),
         GeminiElement(
             name="abstract",
