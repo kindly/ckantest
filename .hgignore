@@ -22,3 +22,8 @@ solr_runtime/*
 fl_notes.txt
 *.ini
 .noseids
+
+# emacs
+*~
+syntax: regexp
+(.*/)?\#[^/]*\#$
