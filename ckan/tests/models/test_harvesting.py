@@ -5,6 +5,7 @@ from ckan.tests import *
 from ckan.model.harvesting import HarvestSource
 from ckan.model.harvesting import HarvestingJob
 from ckan.model.harvesting import HarvestedDocument
+from ckan.model.harvesting import HarvestDomainObject
 from ckan.controllers.harvesting import decode_response
 from ckan.controllers.harvesting import HarvestingJobController
 
@@ -24,6 +25,20 @@ class HarvesterTestCase(TestCase):
 
     def teardown(self):
         model.repo.clean_db()
+
+
+class TestHarvestDomainObject(HarvesterTestCase):
+    def test_harvest_domain_object(self):
+        obj = HarvestSource(id="frob",
+                            url="grob")
+        obj.save()
+        self.assert_equal(HarvestSource.get("frob"),
+                          obj)
+        self.assert_raises(Exception,
+                           HarvestSource.get,
+                           ["baz"])
+        self.assert_equal(HarvestSource.get("baz", "fnord"),
+                          "fnord")
 
 
 class TestHarvestSource(HarvesterTestCase):
@@ -165,17 +180,19 @@ class TestHarvesterSourceTypes(HarvesterTestCase):
         self.gemini_example = GeminiExamples()
         # XXX put real-life CSW examples here if you want, and if they
         # arrive...
-        self.sources = {self.gemini_example.url_for(file_index='index.html'):
+        self.sources = {
+                        # A valid WAF
+                        self.gemini_example.url_for(file_index='index.html'):
                         {'errors': [],
                          'packages': 2,
                          'documents': 3},
-                        #
+                        # No website there at all
                         'http://127.0.0.1:44444':
                         {'errors': ['Unable to get content for URL'],
                          'packages': 0,
                          'documents': 0},
-                        #
-                        'http://www.google.com':
+                        # a random HTML page with nothing useful
+                        self.gemini_example.url_for(file_index=3):
                         {'errors': ["Couldn't find any links to metadata"],
                          'packages': 0,
                          'documents': 0}
@@ -192,17 +209,21 @@ class TestHarvesterSourceTypes(HarvesterTestCase):
             self.assert_false(job.report)
             job = HarvestingJobController(job).harvest_documents()
             after_count = self.count_packages()
-            self.assert_equal(after_count,
-                              before_count + expected['packages'])
-            for (idx, error) in enumerate(job.report['errors']):
-                assert expected['errors'][idx] in error
-            # report['packages'] is a list, appended to each time a
-            # package is touched.
-            self.assert_equal(len(job.source.documents),
-                                  expected['documents'])
-            for (idx, doc) in enumerate(job.source.documents):
-                self.assert_true(doc.package)
-                assert (doc.package.id in job.report['packages'])
+            try:
+                self.assert_equal(after_count,
+                                  before_count + expected['packages'])
+                for (idx, error) in enumerate(job.report['errors']):
+                    assert expected['errors'][idx] in error
+                # report['packages'] is a list, appended to each time a
+                # package is touched.
+                self.assert_equal(len(job.source.documents),
+                                      expected['documents'])
+                for (idx, doc) in enumerate(job.source.documents):
+                    self.assert_true(doc.package)
+                    assert (doc.package.id in job.report['packages'])
+            except AssertionError, e:
+                msg = "%s (in URL %s, expected %s)" % (e, url, expected)
+                raise AssertionError(msg)
 
 
 class TestHarvestedDocument(HarvesterTestCase):
@@ -252,6 +273,7 @@ class GeminiExamples(object):
         u'00a743bf-cca4-4c19-a8e5-e64f7edbcadd_gemini2.xml',
         u'My series sample.xml',
         u'00a743bf-cca4-4c19-a8e5-e64f7edbcadd_gemini2.update.xml',
+        u'not_a_gemini_related_page_at_all.html',
     ]
 
     file_names_bad = [
