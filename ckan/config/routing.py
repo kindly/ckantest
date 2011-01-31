@@ -255,10 +255,17 @@ def make_map():
     map.connect('/{controller}', action='index')
     map.connect('/:controller/{action}')
     map.connect('/{controller}/{action}/{id}')
-    
+
+    map.connect('/harvest/source/new',
+                controller='harvesting',
+                action="new")
+    map.connect('/harvest/source/edit/:id',
+                controller='harvesting',
+                action="edit")
+
     for plugin in routing_plugins:
         map = plugin.after_map(map)
-    
+
     map.redirect('/*(url)/', '/{url}',
                  _redirect_code='301 Moved Permanently')
     map.connect('/*url', controller='template', action='view')

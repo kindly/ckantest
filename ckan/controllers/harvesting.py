@@ -22,6 +22,11 @@ import ckan.rating
 import ckan.misc
 from ckan.lib.cswclient import CswClient
 from ckan.lib.cswclient import CswError
+from ckan.validators.harvesting import harvesting_schema
+
+from ckan.model.harvesting import HarvestSource
+from transformer import PeppercornForm
+from transformer import ParsedForm
 
 logger = logging.getLogger('ckan.controllers')
 
@@ -38,11 +43,41 @@ def decode_response(resp):
     return data
 
 
-class HarvestingSourceController(BaseController):
-    pass
+class HarvestingController(BaseController):
+
+    def edit(self, id):
+        harvest_source = HarvestSource.get(id)
+        if request.method == "POST":
+            form = PeppercornForm()
+            form.parse_from_peppercorn(request.POST.items())
+            validated = form.validate()
+            if form.is_valid():
+                harvest_source.from_dict(validated['data'])
+            form.consume(render('harvesting/source_form.html'))
+        else:
+            data = {'data': harvest_source.to_dict(),
+                    'schema': harvest_source}
+            form = PeppercornForm(
+                form=render('harvesting/source_form.html'),
+                data=data)
+        return form.transform()
+
+    def new(self):
+        if request.method == "POST":
+            form = PeppercornForm()
+            form.parse_from_peppercorn(request.POST.items())
+            validated = form.validate()
+            if form.is_valid():
+                c.created = HarvestSource.from_dict(validated['data'])
+            form.consume(render('harvesting/source_form.html'))
+            rendered = form.transform()
+        else:
+            # vanilla form
+            rendered = render('harvesting/source_form.html')
+        return rendered
 
 
-class ExampleController(BaseController):
+class ExampleController(object):
     authorizer = ckan.authz.Authorizer()
     extensions = PluginImplementations(IPackageController)
 

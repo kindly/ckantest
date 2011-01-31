@@ -18,7 +18,8 @@ from ckan.controllers.package import PackageController
 from ckan.plugins import SingletonPlugin, implements, IPackageController
 from ckan import plugins
 from ckan.rating import set_rating
-
+#08444737373
+#02079900700 #133591
 class MockPackageControllerPlugin(SingletonPlugin):
     implements(IPackageController)
     

@@ -18,7 +18,6 @@ __all__ = [
 ]
 
 
-
 class HarvesterError(Exception): pass
 
 
@@ -56,7 +55,15 @@ class HarvestSource(HarvestDomainObject):
     be turned into packges; or an index page containing links to such
     manifests.
     """
-    pass
+    def to_dict(self):
+        return {'url': self.url,
+                'description': self.description}
+
+    @classmethod
+    def from_dict(self, data):
+        obj = self(**data)
+        obj.save()
+        return obj
 
 
 class HarvestingJob(HarvestDomainObject):
@@ -121,9 +128,6 @@ class MappedXmlDocument(MappedXmlObject):
         else:
             content = self.content
         return etree.fromstring(content, parser=parser)
-
-    def infer_values(self, values):
-        pass
 
 
 class MappedXmlElement(MappedXmlObject):
