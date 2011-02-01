@@ -1,0 +1,32 @@
+<html xmlns:py="http://genshi.edgewall.org/"
+  xmlns:xi="http://www.w3.org/2001/XInclude"
+  py:strip="">
+
+  <py:def function="page_title">Harvest Source</py:def>
+
+   <div py:match="content">
+    <h2 py:if="c.created">Created source ${c.created.id}</h2>
+    <form action="" id="harvest_source" method="POST">
+     <input type="hidden" name="schema" value="harvest_source" />
+
+    <div class="field">
+     <label for="url">URL</label>
+     <div class="error-message" />
+     <input type="text" name="url" />
+    </div>
+
+    <div class="field">
+     <label for="description">Description</label>
+     <div class="error-message" />
+     <textarea name="description"></textarea>
+    </div>
+
+    <input type="submit" />
+
+   </form>
+  </div>
+
+  <xi:include href="../layout.html" />
+
+</html>
+
