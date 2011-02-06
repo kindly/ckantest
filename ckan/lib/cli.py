@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+from pprint import pprint
 
 import paste.script
 from paste.script.util.logging_config import fileConfig
@@ -895,7 +896,12 @@ class Harvester(CkanCommand):
             self.print_harvesting_job(job)
             job_controller = HarvestingJobController(job)
             job_controller.harvest_documents()
-
+            report = job.get_report()
+            pprint (report)
+        ### kludge since front page and packages now use the FTS index
+        from ckan.lib.search import rebuild
+        rebuild()
+        
     def remove_harvesting_job(self, job_id):
         from ckan import model
         try:

@@ -1,5 +1,4 @@
 import urllib2
-import logging
 from lxml import etree
 
 from pylons.i18n import _
@@ -21,7 +20,7 @@ import ckan.authz
 import ckan.rating
 import ckan.misc
 
-logger = logging.getLogger('ckan.controllers')
+log = __import__("logging").getLogger(__name__)
 
 def decode_response(resp):
     """Decode a response to unicode
@@ -128,10 +127,13 @@ class HarvestingJobController(object):
                                     self.job.source.id)
             # XXX Not strictly true - we need to check the title, package resources etc
             if harvested_doc.read_values() == gemini_values:
+                log.info("Document %s unchanged" % gemini_guid)
                 # nothing's changed
                 return None
+            log.info("Updating package for %s" % gemini_guid)
             package = harvested_doc.package
         else:
+            log.info("Creating new package for %s" % gemini_guid)
             harvested_doc = None
             package = None
 
