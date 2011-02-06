@@ -23,6 +23,8 @@ class TestUsage(TestController):
         #   r = Allowed to read
         #   w = Allowed to read/write
         #   x = Not allowed either
+        model.repo.init_db()
+        rev = model.repo.new_revision()
         self.modes = ('xx', 'rx', 'wx', 'rr', 'wr', 'ww', 'deleted')
         for mode in self.modes:
             model.Session.add(model.Package(name=unicode(mode)))
@@ -43,7 +45,6 @@ class TestUsage(TestController):
         model.Session.add(model.User(name=u'groupeditor'))
         model.Session.add(model.User(name=u'groupreader'))
         visitor_name = '123.12.12.123'
-        rev = model.repo.new_revision()
         model.repo.commit_and_remove()
 
         testsysadmin = model.User.by_name(u'testsysadmin')
@@ -67,9 +68,9 @@ class TestUsage(TestController):
                 model.add_user_to_role(groupeditor, model.Role.EDITOR, group)
                 model.add_user_to_role(groupreader, model.Role.READER, group)
             if mode == u'deleted':
+                rev = model.repo.new_revision()
                 pkg = model.Package.by_name(unicode(mode))
                 pkg.state = model.State.DELETED
-                rev = model.repo.new_revision()
                 model.repo.commit_and_remove()
             else:
                 if mode[0] == u'r':
@@ -111,7 +112,7 @@ class TestUsage(TestController):
     @classmethod
     def teardown_class(self):
         model.Session.remove()
-        model.repo.rebuild_db()
+        model.repo.clean_db()
         model.Session.remove()
 
     def _do_test_wui(self, action, user, mode, entity='package'):
@@ -134,7 +135,7 @@ class TestUsage(TestController):
             raise NotImplementedError
         res = self.app.get(offset, extra_environ={'REMOTE_USER': user.name.encode('utf8')}, expect_errors=True)
         #print res
-        is_ok = search_for in res and u'error' not in res and res.status==200 and not '0 packages found' in res
+        is_ok = search_for in res and u'error' not in res and res.status in (200, 201) and not '0 packages found' in res
         return is_ok
 
     def _do_test_rest(self, action, user, mode, entity='package'):
@@ -176,7 +177,7 @@ class TestUsage(TestController):
         res = func(offset, params=postparams,
                    extra_environ=environ,
                    expect_errors=True)
-        return search_for in res and u'error' not in res and res.status==200 and u'0 packages found' not in res
+        return search_for in res and u'error' not in res and res.status in (200, 201) and u'0 packages found' not in res
         
     def _test_can(self, action, users, modes, interfaces=['wui', 'rest'], entities=['package', 'group']):
         if isinstance(users, model.User):
@@ -208,9 +209,8 @@ class TestUsage(TestController):
 
     # Tests numbered by the use case
 
-# we abandon checks for reading due to caching
-#    def test_14_visitor_reads_stopped(self):
-#        self._test_cant('read', self.visitor, ['xx', 'rx', 'wx'])
+    def test_14_visitor_reads_stopped(self):
+        self._test_cant('read', self.visitor, ['xx', 'rx', 'wx'])
     def test_01_visitor_reads(self): 
         self._test_can('read', self.visitor, ['rr', 'wr', 'ww'])
 
@@ -223,9 +223,8 @@ class TestUsage(TestController):
         self._test_can('edit', self.visitor, ['ww'], interfaces=['wui'])
         self._test_can('edit', self.visitor, [], interfaces=['rest'])
 
-# we abandon checks for reading due to caching
-#    def test_15_user_reads_stopped(self):
-#        self._test_cant('read', self.mrloggedin, ['xx'])
+    def test_15_user_reads_stopped(self):
+        self._test_cant('read', self.mrloggedin, ['xx'])
 
     def test_03_user_reads(self):
         self._test_can('read', self.mrloggedin, ['rx', 'wx', 'rr', 'wr', 'ww'])
@@ -235,14 +234,15 @@ class TestUsage(TestController):
     def test_04_user_edits(self):
         self._test_can('edit', self.mrloggedin, ['wx', 'wr', 'ww'])
 
+    
     def test_list(self):
-        #self._test_can('list', [self.testsysadmin, self.pkgadmin], ['xx', 'rx', 'wx', 'rr', 'wr', 'ww'], entities=['package'])
+        # NB this no listing of package in wui interface any more
+        self._test_can('list', [self.testsysadmin, self.pkgadmin], ['xx', 'rx', 'wx', 'rr', 'wr', 'ww'], entities=['package'], interfaces=['rest'])
         self._test_can('list', [self.testsysadmin, self.groupadmin], ['xx', 'rx', 'wx', 'rr', 'wr', 'ww'], entities=['group'])
-        #self._test_can('list', self.mrloggedin, ['rx', 'wx', 'rr', 'wr', 'ww'])
-        #self._test_can('list', self.visitor, ['rr', 'wr', 'ww'])
-# we abandon checks for reading due to caching
-#        self._test_cant('list', self.mrloggedin, ['xx'])
-#        self._test_cant('list', self.visitor, ['xx', 'rx', 'wx'])
+        self._test_can('list', self.mrloggedin, ['rx', 'wx', 'rr', 'wr', 'ww'], interfaces=['rest'])
+        self._test_can('list', self.visitor, ['rr', 'wr', 'ww'], interfaces=['rest'])
+        self._test_cant('list', self.mrloggedin, ['xx'])
+        self._test_cant('list', self.visitor, ['xx', 'rx', 'wx'])
 
     def test_admin_edit_deleted(self):
         self._test_can('edit', self.pkgadmin, ['xx', 'rx', 'wx', 'rr', 'wr', 'ww', 'deleted'], entities=['package'])
@@ -312,6 +312,7 @@ class TestLockedDownUsage(TestUsage):
     
     @classmethod
     def setup_class(self):
+        model.repo.init_db()
         q = model.Session.query(model.UserObjectRole).filter(model.UserObjectRole.role==Role.EDITOR)
         q = q.filter(model.UserObjectRole.user==model.User.by_name(u"visitor"))
         for role in q:
@@ -328,6 +329,5 @@ class TestLockedDownUsage(TestUsage):
     
     @classmethod
     def teardown_class(self):
-        model.Session.remove()
-        model.repo.rebuild_db()
+        model.repo.clean_db()
         model.Session.remove()

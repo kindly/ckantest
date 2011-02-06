@@ -9,7 +9,8 @@ class TestCreation(object):
     @classmethod
     def setup_class(self):
         model.Session.remove()
-        model.repo.rebuild_db()
+        model.repo.init_db()
+        model.repo.new_revision()
         p1 = model.Package(name=u'annakarenina')
         p2 = model.Package(name=u'warandpeace')
         p3 = model.Package(name=u'test0')
@@ -17,13 +18,12 @@ class TestCreation(object):
         for obj in (p1, p2, p3, mradmin):
             model.Session.add(obj)
         self.authorizer = authz.Authorizer()
-        model.repo.new_revision()
         model.repo.commit_and_remove()
 
     @classmethod
     def teardown_class(self):
         model.Session.remove()
-        model.repo.rebuild_db()
+        model.repo.clean_db()
         model.Session.remove()
 
     def test_0_package_role(self):
@@ -110,6 +110,14 @@ class TestCreation(object):
 
 
 class TestDefaultRoles(object):
+    @classmethod
+    def setup_class(self):
+        CreateTestData.create()
+
+    @classmethod
+    def teardown_class(self):
+        model.repo.clean_db()
+        
     def is_allowed(self, role, action):
         action_query = model.Session.query(model.RoleAction).filter_by(role=role,
                                                         action=action)
@@ -161,7 +169,7 @@ class TestDefaultPackageUserRoles(object):
     @classmethod
     def teardown_class(self):
         model.Session.remove()
-        model.repo.rebuild_db()
+        model.repo.clean_db()
         model.Session.remove()
 
     def test_admin(self):
@@ -181,6 +189,7 @@ class TestUsage(object):
 
     @classmethod
     def setup_class(self):
+        model.repo.init_db()
         self.authorizer = authz.Authorizer()
 
         self.admin_role = model.Role.ADMIN
@@ -237,7 +246,7 @@ class TestUsage(object):
     @classmethod
     def teardown_class(self):
         model.Session.remove()
-        model.repo.rebuild_db()
+        model.repo.clean_db()
         model.Session.remove()
 
     def test_1_user_role(self):
@@ -276,12 +285,13 @@ class TestUsage(object):
 class TestMigrate:
     @classmethod
     def setup_class(self):
+        model.repo.init_db()
         model.repo.commit_and_remove()
 
     @classmethod
     def teardown_class(self):
         model.Session.remove()
-        model.repo.rebuild_db()
+        model.repo.clean_db()
         model.Session.remove()
 
     def test_give_default_permissions(self):
@@ -308,6 +318,7 @@ class TestMigrate:
         model.repo.commit_and_remove()
 
         model.give_all_packages_default_user_roles()
+        model.Session.commit()
 
         anna = model.Package.by_name(u'annakarenina')
         war = model.Package.by_name(u'warandpeace')
@@ -339,6 +350,7 @@ class TestUseCasePermissions:
         model.clear_user_roles(anna)
         annakarenina_creator = model.User(name=u'annakarenina_creator')
         model.Session.add(annakarenina_creator)
+        model.repo.commit_and_remove()
         model.setup_default_user_roles(anna, [annakarenina_creator])
         model.repo.commit_and_remove()
 
