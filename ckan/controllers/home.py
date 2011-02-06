@@ -5,6 +5,7 @@ from pylons import cache, config
 from genshi.template import NewTextTemplate
 
 from ckan.authz import Authorizer
+from ckan.model import meta, Package
 from ckan.lib.search import query_for, QueryOptions, SearchError
 from ckan.lib.cache import proxy_cache, get_cache_expires
 from ckan.lib.base import *
@@ -24,7 +25,7 @@ class HomeController(BaseController):
                   limit=0, offset=0, username=c.user)
         c.facets = query.facets
         c.fields = []
-        c.package_count = query.count
+        c.package_count = meta.Session.query(Package).count()
         c.latest_packages = self.authorizer.authorized_query(c.user, model.Package)\
             .join('revision').order_by(model.Revision.timestamp.desc())\
             .limit(5).all()
