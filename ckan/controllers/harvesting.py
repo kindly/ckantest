@@ -234,7 +234,7 @@ class HarvestingJobController(object):
             self.job.report_error("No CSW support installed -- install ckanext-csw")
             raise
         csw = CswService(url)
-        for identifier in csw.getidentifiers(qtype="dataset", page=50):
+        for identifier in csw.getidentifiers(qtype="dataset", page=10):
             if identifier is None:
                 ## log an error here? happens with the dutch data
                 continue
