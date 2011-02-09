@@ -17,6 +17,8 @@ from nose.plugins.skip import SkipTest
 import time
 
 from pylons import config
+from pylons.test import pylonsapp
+from paste.script.appinstall import SetupCommand
 
 import pkg_resources
 import paste.fixture
@@ -26,6 +28,7 @@ from routes import url_for
 
 from ckan.lib.create_test_data import CreateTestData
 from ckan.lib import search
+import ckan.model as model
 
 __all__ = ['url_for',
            'TestController',
@@ -41,31 +44,8 @@ __all__ = ['url_for',
 here_dir = os.path.dirname(os.path.abspath(__file__))
 conf_dir = os.path.dirname(os.path.dirname(here_dir))
 
-sys.path.insert(0, conf_dir)
-pkg_resources.working_set.add_entry(conf_dir)
-pkg_resources.require('Paste')
-pkg_resources.require('PasteScript')
-
-def config_abspath(file_path):
-    if os.path.isabs(file_path):
-        return file_path
-    return os.path.join(conf_dir, file_path)
-
-config_path = config_abspath('test.ini')
-
-cmd = paste.script.appinstall.SetupCommand('setup-app')
-cmd.run([config_path])
-
-import ckan.model as model
-model.repo.init_db()
-
-# make sure that the database is dropped and recreated first
-# so that any schema changes will be made.
-model.repo.metadata.drop_all(bind=model.repo.metadata.bind)
-model.repo.init_db()
-# tell repo it does not need to drop and create any more
-model.repo.inited = True
-
+# Invoke websetup with the current config file
+SetupCommand('setup-app').run([config['__file__']])
 
 class BaseCase(object):
 
@@ -111,9 +91,6 @@ class ModelMethods(BaseCase):
 
     def delete_common_fixtures(self):
         CreateTestData.delete()
-
-    def dropall(self):
-        model.repo.clean_db()
 
     def rebuild(self):
         model.repo.rebuild_db()
@@ -266,7 +243,6 @@ class CheckMethods(BaseCase):
 
 
 class TestCase(CommonFixtureMethods, ModelMethods, CheckMethods, BaseCase):
-
     def setup(self):
         super(TestCase, self).setup()
         self.conditional_create_common_fixtures()
@@ -277,10 +253,18 @@ class TestCase(CommonFixtureMethods, ModelMethods, CheckMethods, BaseCase):
 
 
 class WsgiAppCase(BaseCase):
-
-    wsgiapp = loadapp('config:test.ini', relative_to=conf_dir)
+    wsgiapp = pylonsapp
+    assert wsgiapp, 'You need to run nose with --with-pylons'
+    # Either that, or this file got imported somehow before the tests started
+    # running, meaning the pylonsapp wasn't setup yet (which is done in
+    # pylons.test.py:begin())
     app = paste.fixture.TestApp(wsgiapp)
 
+
+def config_abspath(file_path):
+            if os.path.isabs(file_path):
+                return file_path
+            return os.path.join(conf_dir, file_path)
 
 class CkanServerCase(BaseCase):
     @classmethod
@@ -290,7 +274,9 @@ class CkanServerCase(BaseCase):
         cls._paster('create-test-data', config_path)
 
     @staticmethod
-    def _start_ckan_server(config_file='test.ini'):
+    def _start_ckan_server(config_file=None):
+        if not config_file:
+            config_file = config['__file__']
         config_path = config_abspath(config_file)
         import subprocess
         process = subprocess.Popen(['paster', 'serve', config_path])
