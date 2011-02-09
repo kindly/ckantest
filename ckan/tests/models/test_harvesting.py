@@ -98,15 +98,15 @@ class TestHarvestingJob(HarvesterTestCase):
         after_count = self.count_packages()
         self.assert_equal(after_count, before_count + 1)
         self.assert_equal(job.source.documents[0].package.id,
-                          (job.report['packages'][0]))
+                          (job.report['added'][0]))
         self.assert_true(job.report)
         self.assert_len(job.report['errors'], 0)
-        self.assert_len(job.report['packages'], 1)
+        self.assert_len(job.report['added'], 1)
 
     def test_harvest_documents_twice_unchanged(self):
         job = self.controller.harvest_documents()
         self.assert_len(job.report['errors'], 0)
-        self.assert_len(job.report['packages'], 1)
+        self.assert_len(job.report['added'], 1)
         job2 = HarvestingJobController(
             HarvestingJob(
                 source=self.source,
@@ -114,12 +114,12 @@ class TestHarvestingJob(HarvesterTestCase):
                 )
             ).harvest_documents()
         self.assert_len(job2.report['errors'], 0)
-        self.assert_len(job2.report['packages'], 0)
+        self.assert_len(job2.report['added'], 0)
 
     def test_harvest_documents_twice_changed(self):
         job = self.controller.harvest_documents()
         self.assert_len(job.report['errors'], 0)
-        self.assert_len(job.report['packages'], 1)
+        self.assert_len(job.report['added'], 1)
         self.source.url = self.gemini_example.url_for(file_index=2)
         self.source.save()
         job2 = HarvestingJobController(
@@ -129,7 +129,7 @@ class TestHarvestingJob(HarvesterTestCase):
                 )
             ).harvest_documents()
         self.assert_len(job2.report['errors'], 0)
-        self.assert_len(job2.report['packages'], 1)
+        self.assert_len(job2.report['added'], 1)
 
     def test_harvest_documents_source_guid_contention(self):
         job = self.controller.harvest_documents()
@@ -158,7 +158,7 @@ class TestHarvestingJob(HarvesterTestCase):
         job = HarvestingJobController(job).harvest_documents()
         after_count = self.count_packages()
         self.assert_equal(after_count, before_count)
-        self.assert_len(job.report['packages'], 0)
+        self.assert_len(job.report['added'], 0)
         self.assert_len(job.report['errors'], 1)
         error = job.report['errors'][0]
         self.assert_contains(error,
@@ -176,17 +176,17 @@ class TestHarvesterSourceTypes(HarvesterTestCase):
         self.sources = {
             self.gemini_example.url_for(file_index='index.html'): {
                 'errors': [],
-                'packages': 2,
+                'added': 2,
                 'documents': 3,
             },
             'http://127.0.0.1:44444': {
                 'errors': ['Unable to get content for URL'],
-                'packages': 0,
+                'added': 0,
                 'documents': 0,
             },
             'http://www.google.com': {
                 'errors': ["Couldn't find any links to metadata"],
-                'packages': 0,
+                'added': 0,
                 'documents': 0,
             },
         }
@@ -203,16 +203,16 @@ class TestHarvesterSourceTypes(HarvesterTestCase):
             job = HarvestingJobController(job).harvest_documents()
             after_count = self.count_packages()
             self.assert_equal(after_count,
-                              before_count + expected['packages'])
+                              before_count + expected['added'])
             for (idx, error) in enumerate(job.report['errors']):
                 assert expected['errors'][idx] in error
-            # report['packages'] is a list, appended to each time a
+            # report['added'] is a list, appended to each time a
             # package is touched.
             self.assert_equal(len(job.source.documents),
                                   expected['documents'])
             for (idx, doc) in enumerate(job.source.documents):
                 self.assert_true(doc.package)
-                assert (doc.package.id in job.report['packages'])
+                assert (doc.package.id in job.report['added'])
 
 
 class TestHarvestedDocument(HarvesterTestCase):

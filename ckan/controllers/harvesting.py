@@ -66,38 +66,47 @@ class HarvestingJobController(object):
         self.validator = validator
 
     def harvest_documents(self):
-        self.job.start_report()
         try:
-            try:
-                content = self.get_content(self.job.source.url)
-            except HarvesterUrlError, exception:
-                msg = "Error harvesting source: %s" % exception
-                self.job.report_error(msg)
-            else:
-                ### This is very ugly. Essentially for remote (CSW) services
-                ### we purposely cause an error to detect what they are.
-                ### Likely a much better idea just to have a type in the
-                ### source table
-                source_type = self.detect_source_type(content)
+            content = self.get_content(self.job.source.url)
+        except HarvesterUrlError, exception:
+            msg = "Error harvesting source: %s" % exception
+            self.job.report['errors'].append(msg)
+        else:
+            # @@@ This is very ugly. Essentially for remote (CSW) services
+            # we purposely cause an error to detect what they are.
+            # Likely a much better idea just to have a type in the
+            # source table
+            source_type = self.detect_source_type(content)
+            if source_type not in ['doc', 'waf', 'csw']:
                 if source_type == None:
-                    self.job.report_error(
-                        "Unable to detect source type from content")
-                elif source_type == 'doc':
+                    self.job.report['errors'].append(
+                        "Unable to detect source type from content",
+                    )
+                else:
+                    self.job.report['errors'].append(
+                        "Source type '%s' not supported" % source_type
+                    )
+            else:
+                # @@@ We want a model where the harvesting returns
+                # documents, then each document is parsed and errors
+                # are associated with the document itself, and the 
+                # documents are serialised afterwards I think.
+                # Here everything is done in one go.
+                if source_type == 'doc':
                     self.harvest_gemini_document(content)
                 elif source_type == 'csw':
                     self.harvest_csw_documents(url=self.job.source.url)
                 elif source_type == 'waf':
                     self.harvest_waf_documents(content)
-                else:
-                    raise HarvesterError(
-                        "Source type '%s' not supported" % source_type)
-        except Exception, e:
-            self.job.report_error("Harvesting system error: %r" % e)
-            self.job.save()
-            raise
-        else:
-            if not self.job.report_has_errors():
-                self.job.set_status_success()
+        # Set the status based on the outcome
+        if not self.job.report.get('errors', []):
+            self.job.status = u"Success"
+        elif self.job.report.get('added', []) and self.job.report.get('errors', []):
+            self.job.status = u"Partial Success"
+        elif not self.job.report.get('added', []) and not self.job.report.get('errors', []):
+            self.job.status = u"No Change"
+        elif not self.job.report.get('added', []) and self.job.report.get('errors', []):
+            self.job.status = u"Failed"
         self.job.save()
         return self.job
 
@@ -221,22 +230,22 @@ class HarvestingJobController(object):
             package = self.write_package_from_gemini_string(gemini_string)
         except HarvesterError, exception:
             for msg in [str(x) for x in exception.args]:
-                self.job.report_error(msg)
+                self.job.report['errors'].append(msg)
         except Exception, exception:
             msg = ("System error writing package from harvested"
                    "content: %s" % exception)
-            self.job.report_error(msg)
+            self.job.report['errors'].append(msg)
             raise
         else:
             if package:
-                self.job.report_package(package.id)
+                self.job.report['added'].append(package.id)
 
     def harvest_csw_documents(self, url):
         try:
             from ckanext.csw.services import CswService
             from owslib.csw import namespaces
         except ImportError:
-            self.job.report_error("No CSW support installed -- install ckanext-csw")
+            self.job.report['errors'].append("No CSW support installed -- install ckanext-csw")
             raise
         csw = CswService(url)
         for identifier in csw.getidentifiers(qtype="dataset", page=10):
@@ -245,7 +254,7 @@ class HarvestingJobController(object):
                 continue
             record = csw.getrecordbyid([identifier])
             if record is None:
-                self.job.report_error("Empty record for ID %s" % identifier)
+                self.job.report['errors'].append("Empty record for ID %s" % identifier)
                 continue
             ## we could maybe do something better here by using the
             ## parsed metadata...
@@ -257,12 +266,12 @@ class HarvestingJobController(object):
                 content = self.get_content(url)
             except HarvesterError, error:
                 msg = "Couldn't harvest WAF link: %s: %s" % (url, error)
-                self.job.report_error(msg)
+                self.job.report['errors'].append(msg)
             else:
                 if "<gmd:MD_Metadata" in content:
                     self.harvest_gemini_document(content)
-        if not self.job.get_report()['packages']:
-            self.job.report_error("Couldn't find any links to metadata files.")
+        if not self.job.report['added']:
+            self.job.report['errors'].append("Couldn't find any links to metadata files.")
 
     def extract_urls(self, content):
         """\

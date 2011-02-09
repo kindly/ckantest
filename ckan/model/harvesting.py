@@ -6,6 +6,7 @@ from lxml import etree
 from types import make_uuid
 from types import JsonType
 from core import *
+from sqlalchemy.orm import backref, relation
 from domain_object import DomainObject
 from package import Package
 
@@ -17,14 +18,14 @@ __all__ = [
     'HarvestedDocument', 'harvested_document_table',
 ]
 
+class HarvesterError(Exception):
+    pass
 
+class HarvesterUrlError(HarvesterError):
+    pass
 
-class HarvesterError(Exception): pass
-
-
-class HarvesterUrlError(HarvesterError): pass
-
-class ValidationError(HarvesterError): pass
+class ValidationError(HarvesterError):
+    pass
 
 class HarvestDomainObject(DomainObject):
     """Convenience methods for searching objects
@@ -59,53 +60,23 @@ class HarvestSource(HarvestDomainObject):
     """
     pass
 
-
 class HarvestingJob(HarvestDomainObject):
 
-    def report_error(self, msg):
-        log.error(msg)
-        self.set_status(u"Error")
-        self.get_report()['errors'].append(msg)
-        self.errors += msg
-
-    def report_package(self, msg):
-        log.info(msg)
-        self.get_report()['packages'].append(msg)
-
-    def get_report(self):
-        if not hasattr(self, '_report'):
-            self._report = {
-                'packages': [],
-                'errors': [],
-            }
-        return self._report
-
-    def start_report(self):
-        self.get_report()
-        self.set_status(u"Running")
-        self.save()
-
     def save(self):
-        self.report = self.get_report()
-        super(HarvestingJob, self).save()
-
-    def report_has_errors(self):
-        return bool(self.get_report()['errors'])
-
-    def set_status_success(self):
-        self.set_status(u"Success")
-
-    def set_status(self, status):
-        self.status = status
+        # Why is this necessary?
+        if self.report is not None:
+            _report = self.report
+            self.report = str(dict(_report))
+            HarvestDomainObject.save(self)
+            self.report = _report
+        HarvestDomainObject.save(self)
 
 
 class MappedXmlObject(object):
-
     elements = []
 
 
 class MappedXmlDocument(MappedXmlObject):
-
     def __init__(self, content):
         self.content = content
 
@@ -130,7 +101,6 @@ class MappedXmlDocument(MappedXmlObject):
 
 
 class MappedXmlElement(MappedXmlObject):
-
     namespaces = {}
 
     def __init__(self, name, search_paths=[], multiplicity="*", elements=[]):
@@ -742,48 +712,58 @@ class HarvestedDocument(HarvestDomainObject):
             raise HarvesterError, "Can't identify type of document content: %s" % self.content
         return gemini_document.read_values()
 
-
 harvest_source_table = Table('harvest_source', metadata,
-        Column('id', types.UnicodeText, primary_key=True, default=make_uuid),
-        Column('url', types.UnicodeText, unique=True, nullable=False),
-        Column('description', types.UnicodeText, default=u''),
-        Column('user_ref', types.UnicodeText, default=u''),
-        Column('publisher_ref', types.UnicodeText, default=u''),
-        Column('created', DateTime, default=datetime.datetime.utcnow),
+    Column('id', types.UnicodeText, primary_key=True, default=make_uuid),
+    Column('url', types.UnicodeText, unique=True, nullable=False),
+    Column('description', types.UnicodeText, default=u''),
+    Column('user_ref', types.UnicodeText, default=u''),
+    Column('publisher_ref', types.UnicodeText, default=u''),
+    Column('created', DateTime, default=datetime.datetime.utcnow),
 )
-
 harvesting_job_table = Table('harvesting_job', metadata,
-        Column('id', types.UnicodeText, primary_key=True, default=make_uuid),
-        Column('status', types.UnicodeText, default=u'New', nullable=False),
-        Column('created', DateTime, default=datetime.datetime.utcnow),
-        Column('user_ref', types.UnicodeText, nullable=False),
-        Column('report', JsonType),
-        Column('errors', types.UnicodeText, default=u''),
-        Column('source_id', types.UnicodeText, ForeignKey('harvest_source.id')),
+    Column('id', types.UnicodeText, primary_key=True, default=make_uuid),
+    Column('status', types.UnicodeText, default=u'New', nullable=False),
+    Column('created', DateTime, default=datetime.datetime.utcnow),
+    Column('user_ref', types.UnicodeText, nullable=False),
+    Column('report', JsonType, default={'added': [], 'removed': [], 'errors': []}),
+    Column('errors', types.UnicodeText, default=u''),
+    Column('source_id', types.UnicodeText, ForeignKey('harvest_source.id')),
 )
-
 harvested_document_table = Table('harvested_document', metadata,
-        Column('id', types.UnicodeText, primary_key=True, default=make_uuid),
-        Column('guid', types.UnicodeText, default=''),
-        Column('created', DateTime, default=datetime.datetime.utcnow),
-        Column('content', types.UnicodeText, nullable=False),
-        Column('source_id', types.UnicodeText, ForeignKey('harvest_source.id')),
-        Column('package_id', types.UnicodeText, ForeignKey('package.id')),
+    Column('id', types.UnicodeText, primary_key=True, default=make_uuid),
+    Column('guid', types.UnicodeText, default=''),
+    Column('created', DateTime, default=datetime.datetime.utcnow),
+    Column('content', types.UnicodeText, nullable=False),
+    Column('source_id', types.UnicodeText, ForeignKey('harvest_source.id')),
+    Column('package_id', types.UnicodeText, ForeignKey('package.id')),
 )
-
-
-mapper(HarvestedDocument, harvested_document_table, properties={
-    'package':relation(Package),
-})
-
-mapper(HarvestingJob, harvesting_job_table, properties={
-    'source':relation(HarvestSource),
-})
-
-mapper(HarvestSource, harvest_source_table, properties={ 
-    'documents': relation(HarvestedDocument,
-        backref='source',
-    #    cascade='all, delete, delete-orphan',
-    )
-})
+mapper(
+    HarvestedDocument, 
+    harvested_document_table, 
+    properties={
+        'package':relation(Package),
+    }
+)
+mapper(
+    HarvestingJob, 
+    harvesting_job_table,
+    #properties={
+    #    'source': relation(HarvestSource, backref='jobs', order_by='created')
+    #},
+)
+mapper(
+    HarvestSource, 
+    harvest_source_table,
+    properties={ 
+        'documents': relation(
+            HarvestedDocument,
+            backref='source',
+        ),
+        'jobs': relation(
+            HarvestingJob,
+            backref=u'source', 
+            order_by=harvesting_job_table.c.created,
+        ),
+    },
+)
 

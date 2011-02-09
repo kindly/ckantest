@@ -883,7 +883,6 @@ class Harvester(CkanCommand):
         from ckan.model import HarvestingJob
         from ckan.controllers.harvesting import HarvestingJobController
         from ckanext.csw.validation import Validator
-
         
         jobs = HarvestingJob.filter(status=u"New").all()
         jobs_len = len(jobs)
@@ -903,8 +902,7 @@ class Harvester(CkanCommand):
             self.print_harvesting_job(job)
             job_controller = HarvestingJobController(job, validator)
             job_controller.harvest_documents()
-            report = job.get_report()
-            pprint (report)
+            pprint (job.report)
         ### kludge since front page and packages now use the FTS index
         from ckan.lib.search import rebuild
         rebuild()
@@ -1032,8 +1030,8 @@ class Harvester(CkanCommand):
         print "source: %s" % job.source.id
         print "   url: %s" % job.source.url
         #print "report: %s" % job.report
-        if job.report and job.report['packages']:
-            for package_id in job.report['packages']:
+        if job.report and job.report['added']:
+            for package_id in job.report['added']:
                 print "   doc: %s" % package_id
         if job.report and job.report['errors']:
             for msg in job.report['errors']:
