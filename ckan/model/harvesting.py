@@ -24,6 +24,7 @@ class HarvesterError(Exception): pass
 
 class HarvesterUrlError(HarvesterError): pass
 
+class ValidationError(HarvesterError): pass
 
 class HarvestDomainObject(DomainObject):
     """Convenience methods for searching objects

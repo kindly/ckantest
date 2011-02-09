@@ -882,11 +882,18 @@ class Harvester(CkanCommand):
 
         from ckan.model import HarvestingJob
         from ckan.controllers.harvesting import HarvestingJobController
+        from ckanext.csw.validation import Validator
+
+        
         jobs = HarvestingJob.filter(status=u"New").all()
         jobs_len = len(jobs)
         jobs_count = 0
         if jobs_len:
             print "Running %s harvesting jobs..." % jobs_len
+            profiles = [x.strip() for x in
+                        pylons.config.get("ckan.harvestor.validator.profiles", "iso19139,gemini2"
+                                          ).split(",")]
+            validator = Validator(profiles=profiles)
         else:
             print "There are no new harvesting jobs."
         print ""
@@ -894,7 +901,7 @@ class Harvester(CkanCommand):
             jobs_count += 1
             print "Running job %s/%s: %s" % (jobs_count, jobs_len, job.id)
             self.print_harvesting_job(job)
-            job_controller = HarvestingJobController(job)
+            job_controller = HarvestingJobController(job, validator)
             job_controller.harvest_documents()
             report = job.get_report()
             pprint (report)

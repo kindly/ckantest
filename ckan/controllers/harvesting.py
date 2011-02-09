@@ -9,7 +9,7 @@ from ckan.lib.package_saver import PackageSaver, ValidationException
 from ckan.lib.package_saver import WritePackageFromBoundFieldset
 from ckan.lib.base import BaseController
 from ckan.plugins import PluginImplementations, IPackageController
-from ckan.model.harvesting import HarvesterError, HarvesterUrlError
+from ckan.model.harvesting import HarvesterError, HarvesterUrlError, ValidationError
 from ckan.model.harvesting import GeminiDocument
 from ckan.model.harvesting import HarvestedDocument
 import ckan.forms
@@ -61,8 +61,9 @@ class HarvestingJobController(object):
     This is not a controller in the Pylons sense, just an object for managing
     harvesting.
     """
-    def __init__(self, job):
+    def __init__(self, job, validator=None):
         self.job = job
+        self.validator = validator
 
     def harvest_documents(self):
         self.job.start_report()
@@ -208,25 +209,27 @@ class HarvestingJobController(object):
 
     def harvest_gemini_document(self, gemini_string):
         try:
-            self.validate_document(gemini_string)
+            if self.validator is not None:
+                # sigh... encoding, decoding, encoding, decoding
+                # convention really should be, parse into etree at
+                # the first opportunity and then only pass that
+                # around internally...
+                xml = etree.fromstring(gemini_string)
+                valid, messages = self.validator.isvalid(xml)
+                if not valid:
+                    raise ValidationError(*messages)
+            package = self.write_package_from_gemini_string(gemini_string)
+        except HarvesterError, exception:
+            for msg in [str(x) for x in exception.args]:
+                self.job.report_error(msg)
         except Exception, exception:
-            print "Validation Error"
-            msg = "Error validating harvested content: %s" % exception
+            msg = ("System error writing package from harvested"
+                   "content: %s" % exception)
             self.job.report_error(msg)
+            raise
         else:
-            try:
-                package = self.write_package_from_gemini_string(gemini_string)
-            except HarvesterError, exception:
-                msg = "%s" % exception
-                self.job.report_error(msg)
-            except Exception, exception:
-                msg = ("System error writing package from harvested"
-                       "content: %s" % exception)
-                self.job.report_error(msg)
-                raise
-            else:
-                if package:
-                    self.job.report_package(package.id)
+            if package:
+                self.job.report_package(package.id)
 
     def harvest_csw_documents(self, url):
         try:
@@ -290,12 +293,6 @@ class HarvestingJobController(object):
         base_url.rstrip('/')
         base_url += '/'
         return [base_url + i for i in urls]
-
-    def validate_document(self, content):
-        """\
-        This should run the schema validation, the schematron validation *and* any checks we want to make.
-        """
-        pass
 
     def _create_package_from_data(self, package_data):
         user_editable_groups = []
