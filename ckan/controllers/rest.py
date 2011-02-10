@@ -535,15 +535,6 @@ class BaseRestController(BaseApiController):
         # must be logged in to start with
         if not self._check_access(None, None):
             return json.dumps(_('Access denied'))
-        # XXX Currently no security on this call
-        if register == 'harvestsource' and not subregister:
-            source = model.HarvestSource.get(id, default=None)
-            jobs = model.HarvestingJob.filter(source=source)
-            for job in jobs:
-                job.delete()
-            source.delete()
-            model.repo.commit()        
-            return self._finish_ok()
         if register == 'package' and not subregister:
             entity = self._get_pkg(id)
             if not entity:
@@ -762,6 +753,9 @@ class BaseRestController(BaseApiController):
             source = model.HarvestSource.get(source_id, default=None)
             if not source:
                 opts_err = gettext('Harvest source %s does not exist.') % source_id
+        objects = model.HarvestingJob.filter(status='New', source=source)
+        if objects.count():
+            opts_err = 'There is already an unrun job for the harvest source %r'%source.id
         if opts_err:
             self.log.debug(opts_err)
             response.status_int = 400

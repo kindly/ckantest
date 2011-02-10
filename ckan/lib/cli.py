@@ -931,6 +931,9 @@ class Harvester(CkanCommand):
         else:
             source = HarvestSource.get(source_id)
 
+        objects = HarvestingJob.filter(status='New', source=source)
+        if objects.count():
+            raise Exception('There is already an unrun job for the harvest source %r'%source.id)
         job = HarvestingJob(
             source=source,
             user_ref=user_ref,
@@ -956,7 +959,8 @@ class Harvester(CkanCommand):
             self.print_harvest_source(source)
             sources = self.get_harvest_sources()
             self.print_there_are("harvest source", sources)
-
+            self.register_harvesting_job(source.id, user_ref)
+               
     def remove_harvest_source(self, url):
         from ckan import model
         sources = model.HarvestSource.filter(url=url)

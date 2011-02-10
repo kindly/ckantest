@@ -30,7 +30,9 @@ def decode_response(resp):
     try:
         data = unicode(content, encoding)
     except LookupError:
-        data = unicode(content, 'utf8')  # XXX is this a fair assumption?
+        # XXX is this a fair assumption? No, we should let the parser take the value from the XML encoding specified in the document
+        # data = unicode(content, 'utf8') 
+        data = content
     return data
 
 class HarvestingSourceController(BaseController):
@@ -231,11 +233,12 @@ class HarvestingJobController(object):
         except HarvesterError, exception:
             for msg in [str(x) for x in exception.args]:
                 self.job.report['errors'].append(msg)
-        except Exception, exception:
-            msg = ("System error writing package from harvested"
-                   "content: %s" % exception)
+        except Exception, e:
+            msg = (
+                "System error writing package from harvested"
+                "content: %s" % e
+            )
             self.job.report['errors'].append(msg)
-            raise
         else:
             if package:
                 self.job.report['added'].append(package.id)

@@ -63,7 +63,7 @@ class HarvestSource(HarvestDomainObject):
 class HarvestingJob(HarvestDomainObject):
 
     def save(self):
-        # Why is this necessary?
+        # Why is this necessary? If I don't add it the report field isn't saved
         if self.report is not None:
             _report = self.report
             self.report = str(dict(_report))
@@ -725,7 +725,7 @@ harvesting_job_table = Table('harvesting_job', metadata,
     Column('status', types.UnicodeText, default=u'New', nullable=False),
     Column('created', DateTime, default=datetime.datetime.utcnow),
     Column('user_ref', types.UnicodeText, nullable=False),
-    Column('report', JsonType, default={'added': [], 'removed': [], 'errors': []}),
+    Column('report', JsonType, default={'added': [], 'errors': []}),
     Column('errors', types.UnicodeText, default=u''),
     Column('source_id', types.UnicodeText, ForeignKey('harvest_source.id')),
 )
