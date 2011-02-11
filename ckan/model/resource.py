@@ -68,7 +68,7 @@ mapper(PackageResource, package_resource_table, properties={
 )
     
 vdm.sqlalchemy.modify_base_object_mapper(PackageResource, Revision, State)
-PackageResourceRevision= vdm.sqlalchemy.create_object_version(
+PackageResourceRevision = vdm.sqlalchemy.create_object_version(
     mapper, PackageResource, resource_revision_table)
 
 import vdm.sqlalchemy.stateful
