@@ -377,15 +377,15 @@ class GeminiDocument(MappedXmlDocument):
             ],
             multiplicity="*",
         ),
-        # Todo: Suggestion from PP not to bother pulling this into the package.
-        GeminiElement(
-            name="unique-resource-identifier",
-            search_paths=[
-                "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:identifier/gmd:RS_Identifier",
-                "gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:citation/gmd:CI_Citation/gmd:identifier/gmd:RS_Identifier",
-            ],
-            multiplicity="1",
-        ),
+        ## Todo: Suggestion from PP not to bother pulling this into the package.
+        #GeminiElement(
+        #    name="unique-resource-identifier",
+        #    search_paths=[
+        #        "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:citation/gmd:CI_Citation/gmd:identifier/gmd:RS_Identifier",
+        #        "gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:citation/gmd:CI_Citation/gmd:identifier/gmd:RS_Identifier",
+        #    ],
+        #    multiplicity="1",
+        #),
         GeminiElement(
             name="abstract",
             search_paths=[
@@ -747,9 +747,6 @@ mapper(
 mapper(
     HarvestingJob, 
     harvesting_job_table,
-    #properties={
-    #    'source': relation(HarvestSource, backref='jobs', order_by='created')
-    #},
 )
 mapper(
     HarvestSource, 

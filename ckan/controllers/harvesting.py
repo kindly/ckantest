@@ -131,6 +131,10 @@ class HarvestingJobController(object):
         elif len(harvested_documents) == 1:
              # we've previously harvested this (i.e. it's an update)
             harvested_doc = harvested_documents[0]
+            if harvested_doc.source is None:
+                # The source has been deleted, we can re-use it
+                self.job.report['errors'].append('This document existed from another source which was deleted, using your document instead')
+                harvested_doc.source = self.job.source
             if harvested_doc.source.id != self.job.source.id:
                 # A 'user' error: there are two or more sources
                 # pointing to the same harvested document
@@ -148,7 +152,6 @@ class HarvestingJobController(object):
             log.info("Creating new package for %s" % gemini_guid)
             harvested_doc = None
             package = None
-
         extras = {
             'publisher': int(self.job.source.publisher_ref or 0),
             'INSPIRE': 'True',
@@ -200,6 +203,8 @@ class HarvestingJobController(object):
             source=self.job.source,
         )
         harvested_doc.save()
+        if not harvested_doc.source_id:
+            self.job.report['errors'].append('Failed to set the source for document %r'%harvested_doc.id)
         return package
 
     def get_content(self, url):
@@ -234,11 +239,7 @@ class HarvestingJobController(object):
             for msg in [str(x) for x in exception.args]:
                 self.job.report['errors'].append(msg)
         except Exception, e:
-            msg = (
-                "System error writing package from harvested"
-                "content: %s" % e
-            )
-            self.job.report['errors'].append(msg)
+            self.job.report['errors'].append('se: %r'%str(e))
         else:
             if package:
                 self.job.report['added'].append(package.id)
@@ -345,7 +346,7 @@ class HarvestingJobController(object):
             model.repo.commit()
         else:
             # Complain about validation errors.
-            msg = 'Validation error:'
+            msg = 'CKAN Validation error:'
             errors = fs.errors.items()
             for error in errors:
                 attr_name = error[0].name
