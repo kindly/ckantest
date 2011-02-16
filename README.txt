@@ -60,7 +60,7 @@ tests. See: http://buildbot.okfn.org/waterfall
        you can get a ``virtualenv.py`` script from within the 
        `virtualenv source distribution <http://pypi.python.org/pypi/virtualenv/>`_
        and then run ``python virtualenv.py pyenv`` instead.
-   
+    
 3. Activate your virtual environment
 
    To work with CKAN it is best to adjust your shell settings so that your
@@ -81,7 +81,7 @@ tests. See: http://buildbot.okfn.org/waterfall
    An activated shell looks in your virtual environment first when choosing
    which commands to run. If you enter ``python`` now it will actually 
    run ``~/pyenv/bin/python`` which is what you want.
-
+   
 4. Install CKAN code and required Python packages into the new environment
 
    To help with automatically installing CKAN dependencies we use a tool
@@ -116,125 +116,124 @@ tests. See: http://buildbot.okfn.org/waterfall
 
    This will take a **long** time. Particularly the install of the ``lxml``
    package.
-
+   
 5. Setup a PostgreSQL database
 
-  List existing databases:
-
-  ::
-
-      psql -l
-
-  It is advisable to ensure that the encoding of databases is 'UTF8', or 
-  internationalisation may be a problem. Since changing the encoding of PostgreSQL
-  may mean deleting existing databases, it is suggested that this is fixed before
-  continuing with the CKAN install.
-
-  Next you'll need to create a database user if one doesn't already exist.
-
-  .. tip ::
-
-      If you choose a database name, user or password which are different from those 
-      suggested below then you'll need to update the configuration file you'll create in
-      the next step.
-
-  Here we choose ``ckantest`` as the database and ``ckanuser`` as the user:
-
-  ::
-
-      sudo -u postgres createuser -S -D -R -P ckantest
-
-  It should prompt you for a new password for the CKAN data in the database.
-  It is suggested you enter ``pass`` for the password.
-
-  Now create the database, which we'll call ``ckantest`` (the last argument):
-
-  ::
-
-      sudo -u postgres createdb -O ckantest ckantest
-
+   List existing databases:
+ 
+   ::
+ 
+       psql -l
+ 
+   It is advisable to ensure that the encoding of databases is 'UTF8', or 
+   internationalisation may be a problem. Since changing the encoding of PostgreSQL
+   may mean deleting existing databases, it is suggested that this is fixed before
+   continuing with the CKAN install.
+ 
+   Next you'll need to create a database user if one doesn't already exist.
+ 
+   .. tip ::
+ 
+       If you choose a database name, user or password which are different from those 
+       suggested below then you'll need to update the configuration file you'll create in
+       the next step.
+ 
+   Here we choose ``ckantest`` as the database and ``ckanuser`` as the user:
+ 
+   ::
+ 
+       sudo -u postgres createuser -S -D -R -P ckantest
+ 
+   It should prompt you for a new password for the CKAN data in the database.
+   It is suggested you enter ``pass`` for the password.
+ 
+   Now create the database, which we'll call ``ckantest`` (the last argument):
+ 
+   ::
+ 
+       sudo -u postgres createdb -O ckantest ckantest
+   
 6. Create a CKAN config file
 
-  Make sure you are in an activated environment (see step 3) so that Python
-  Paste and other modules are put on the python path (your command prompt will
-  start with ``(pyenv)`` if you have) then change into the ``ckan`` directory
-  which will have been created when you installed CKAN in step 4 and create the
-  config file ``development.ini`` using Paste:
-
-  ::
-
-      cd pyenv/src/ckan
-      paster make-config ckan development.ini
-
-  You can give your config file a different name but the tests will expect you
-  to have used ``development.ini`` so it is strongly recommended you use this
-  name, at least to start with.
-
-  If you used a different database name or password when creating the database
-  in step 5 you'll need to now edit ``development.ini`` and change the
-  ``sqlalchemy.url`` line, filling in the database name, user and password you used.
-
-  ::
-  
-      sqlalchemy.url = postgres://ckantest:pass@localhost/ckantest
-
-  Other configuration, such as setting the language of the site or editing the
-  visual theme are described in :doc:`configuration` (doc/configuration.rst)  
-
-  .. caution ::
-
-     Advanced users: If you are using CKAN's fab file capability you currently need to create
-     your config file as ``pyenv/ckan.net.ini`` so you will probably have 
-     ignored the advice about creating a ``development.ini`` file in the 
-     ``pyenv/src/ckan`` directory. This is fine but CKAN probably won't be 
-     able to find your ``who.ini`` file. To fix this edit ``pyenv/ckan.net.ini``, 
-     search for the line ``who.config_file = %(here)s/who.ini`` and change it
-     to ``who.config_file = who.ini``.
-
-     We are moving to a new deployment system where this incompatibility 
-     will be fixed.
-
+   Make sure you are in an activated environment (see step 3) so that Python
+   Paste and other modules are put on the python path (your command prompt will
+   start with ``(pyenv)`` if you have) then change into the ``ckan`` directory
+   which will have been created when you installed CKAN in step 4 and create the
+   config file ``development.ini`` using Paste:
+ 
+   ::
+ 
+       cd pyenv/src/ckan
+       paster make-config ckan development.ini
+ 
+   You can give your config file a different name but the tests will expect you
+   to have used ``development.ini`` so it is strongly recommended you use this
+   name, at least to start with.
+ 
+   If you used a different database name or password when creating the database
+   in step 5 you'll need to now edit ``development.ini`` and change the
+   ``sqlalchemy.url`` line, filling in the database name, user and password you used.
+ 
+   ::
+   
+       sqlalchemy.url = postgres://ckantest:pass@localhost/ckantest
+ 
+   Other configuration, such as setting the language of the site or editing the
+   visual theme are described in :doc:`configuration` (doc/configuration.rst)  
+ 
+   .. caution ::
+ 
+      Advanced users: If you are using CKAN's fab file capability you currently need to create
+      your config file as ``pyenv/ckan.net.ini`` so you will probably have 
+      ignored the advice about creating a ``development.ini`` file in the 
+      ``pyenv/src/ckan`` directory. This is fine but CKAN probably won't be 
+      able to find your ``who.ini`` file. To fix this edit ``pyenv/ckan.net.ini``, 
+      search for the line ``who.config_file = %(here)s/who.ini`` and change it
+      to ``who.config_file = who.ini``.
+ 
+      We are moving to a new deployment system where this incompatibility 
+      will be fixed.
+   
 7. Create database tables
 
-  Now that you have a configuration file that has the correct settings for
-  your database, you'll need to create the tables. Make sure you are still in an
-  activated environment with ``(pyenv)`` at the front of the command prompt and
-  then from the ``pyenv/src/ckan`` directory run this command:
-
-   ::
-
-       paster db init
-
-  You should see ``Initialising DB: SUCCESS``. If you are not in the
-  ``pyenv/src/ckan`` directory or you don't have an activated shell, the command
-  will not work.
-
-  If the command prompts for a password it is likely you haven't set up the 
-  database configuration correctly in step 6.
-
+   Now that you have a configuration file that has the correct settings for
+   your database, you'll need to create the tables. Make sure you are still in an
+   activated environment with ``(pyenv)`` at the front of the command prompt and
+   then from the ``pyenv/src/ckan`` directory run this command:
+ 
+    ::
+ 
+        paster db init
+ 
+   You should see ``Initialising DB: SUCCESS``. If you are not in the
+   ``pyenv/src/ckan`` directory or you don't have an activated shell, the command
+   will not work.
+ 
+   If the command prompts for a password it is likely you haven't set up the 
+   database configuration correctly in step 6.
+   
 8. Create the cache directory
 
-  You need to create the Pylon's cache directory specified by 'cache_dir' 
-  in the config file.
-
-  (from the ``pyenv/src/ckan`` directory):
-
-  ::
-
-      mkdir data
-
-
+   You need to create the Pylon's cache directory specified by 'cache_dir' 
+   in the config file.
+ 
+   (from the ``pyenv/src/ckan`` directory):
+ 
+   ::
+ 
+       mkdir data
+    
 9. Run the CKAN webserver
 
-  NB If you've started a new shell, you'll have to activate the environment
-  again first - see step 3.
-
-  (from the pyenv/src/ckan directory):
-
-  ::
-
-      paster serve development.ini
-
+   NB If you've started a new shell, you'll have to activate the environment
+   again first - see step 3.
+ 
+   (from the pyenv/src/ckan directory):
+ 
+   ::
+ 
+       paster serve development.ini
+    
 10. Point your web browser at: http://127.0.0.1:5000/
 
     The CKAN homepage should load without problem.
