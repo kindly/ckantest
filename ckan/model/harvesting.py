@@ -741,7 +741,11 @@ mapper(
     HarvestedDocument, 
     harvested_document_table, 
     properties={
-        'package':relation(Package),
+        'package':relation(
+            Package,
+            # Using the plural but there should only ever be one
+            backref='documents',
+        ),
     }
 )
 mapper(

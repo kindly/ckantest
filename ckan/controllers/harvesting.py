@@ -19,6 +19,7 @@ import ckan.model as model
 import ckan.authz
 import ckan.rating
 import ckan.misc
+from ckan.lib.munge import munge_title_to_name
 
 log = __import__("logging").getLogger(__name__)
 
@@ -34,6 +35,20 @@ def decode_response(resp):
         # data = unicode(content, 'utf8') 
         data = content
     return data
+
+def gen_new_name(title):
+    name = munge_title_to_name(title).replace('_', '-')
+    like_q = u"%s%%" % name
+    pkg_query = model.Session.query(model.Package).filter(model.Package.name.ilike(like_q)).limit(100)
+    taken = [pkg.name for pkg in pkg_query]
+    if name not in taken:
+        return name
+    else:
+        counter = 1
+        while counter < 101:
+            if name+str(counter) not in taken:
+                return name+str(counter)
+        return None
 
 class HarvestingSourceController(BaseController):
     pass
@@ -120,6 +135,8 @@ class HarvestingJobController(object):
         references to its source and its package)
         """
         # Look for previously harvested document matching Gemini GUID
+        harvested_doc = None
+        package = None
         gemini_document = GeminiDocument(content)
         gemini_values = gemini_document.read_values()
         gemini_guid = gemini_values['guid']
@@ -142,26 +159,30 @@ class HarvestingJobController(object):
                     "Another source is using metadata GUID %s" % \
                                     self.job.source.id)
             # XXX Not strictly true - we need to check the title, package resources etc
-            if harvested_doc.read_values() == gemini_values:
-                log.info("Document %s unchanged" % gemini_guid)
-                # nothing's changed
+            if harvested_doc.content == content:
+                log.info("Document with GUID %s unchanged, skipping..." % (gemini_guid))
                 return None
             log.info("Updating package for %s" % gemini_guid)
             package = harvested_doc.package
         else:
-            log.info("Creating new package for %s" % gemini_guid)
-            harvested_doc = None
-            package = None
+            log.info("No package with GEMINI guid %s found, let's create one" % gemini_guid)
         extras = {
-            'publisher': int(self.job.source.publisher_ref or 0),
+            'published_by': int(self.job.source.publisher_ref or 0),
             'INSPIRE': 'True',
         }
         # Just add some of the metadata as extras, not the whole lot
-        for name in ['bbox-east-long', 'bbox-north-lat', 'bbox-south-lat', 'bbox-west-long', 'abstract', 'guid']:
+        for name in ['bbox-east-long', 'bbox-north-lat', 'bbox-south-lat', 'bbox-west-long', 'guid']:
             extras[name] = gemini_values[name]
+
+        name = gen_new_name(gemini_values['title'])
+        if not name:
+            name = gen_new_name(str(gemini_guid))
+        if not name:
+            raise Exception('Could not generate a unique name from the title or the GUID. Please choose a more unique title.')
         package_data = {
-            'name': str(gemini_guid),
+            'name': name,
             'title': gemini_values['title'],
+            'notes': gemini_values['abstract'],
             'extras': extras,
         }
         resource_locator = gemini_values.get('resource-locator', []) and gemini_values['resource-locator'][0].get('url') or ''
@@ -194,8 +215,10 @@ class HarvestingJobController(object):
         if package == None:
             # Create new package from data.
             package = self._create_package_from_data(package_data)
+            log.info("Created new package ID %s with GEMINI guid %s", package.id, gemini_guid)
         else:
             package = self._update_package_from_data(package, package_data)
+            log.info("Updated existing package ID %s with existing GEMINI guid %s", package.id, gemini_guid)
         harvested_doc = HarvestedDocument(
             content=content,
             guid=gemini_guid,
@@ -204,7 +227,8 @@ class HarvestingJobController(object):
         )
         harvested_doc.save()
         if not harvested_doc.source_id:
-            self.job.report['errors'].append('Failed to set the source for document %r'%harvested_doc.id)
+            raise Exception('Failed to set the source for document %r'%harvested_doc.id)
+        assert gemini_guid == package.documents[0].guid
         return package
 
     def get_content(self, url):
@@ -237,8 +261,10 @@ class HarvestingJobController(object):
             package = self.write_package_from_gemini_string(gemini_string)
         except HarvesterError, exception:
             for msg in [str(x) for x in exception.args]:
+                log.error(msg)
                 self.job.report['errors'].append(msg)
         except Exception, e:
+            raise
             self.job.report['errors'].append('se: %r'%str(e))
         else:
             if package:
@@ -249,20 +275,31 @@ class HarvestingJobController(object):
             from ckanext.csw.services import CswService
             from owslib.csw import namespaces
         except ImportError:
-            self.job.report['errors'].append("No CSW support installed -- install ckanext-csw")
+            self.job.report['errors'].append('No CSW support installed -- install ckanext-csw')
             raise
         csw = CswService(url)
-        for identifier in csw.getidentifiers(qtype="dataset", page=10):
+        used_identifiers = []
+        # XXX Don't we want services and series too!
+        for identifier in csw.getidentifiers(qtype='dataset', page=10):
+            log.info('Got identifier %s from the CSW', identifier)
+            if identifier in used_identifiers:
+                log.error('CSW identifier %r already used, skipping...' % identifier)
+                continue
             if identifier is None:
+                self.job.report['errors'].append('CSW returned identifier %r, skipping...' % identifier)
+                log.error('CSW returned identifier %r, skipping...' % identifier)
                 ## log an error here? happens with the dutch data
                 continue
+            used_identifiers.append(identifier)
             record = csw.getrecordbyid([identifier])
             if record is None:
-                self.job.report['errors'].append("Empty record for ID %s" % identifier)
+                self.job.report['errors'].append('Empty record for ID %s' % identifier)
+                log.error('Empty record for ID %s' % identifier)
                 continue
             ## we could maybe do something better here by using the
             ## parsed metadata...
-            self.harvest_gemini_document(record["xml"])
+            log.info('Parsing the record XML len %s', len(record['xml']))
+            self.harvest_gemini_document(record['xml'])
 
     def harvest_waf_documents(self, content):
         for url in self.extract_urls(content):
