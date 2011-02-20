@@ -279,8 +279,7 @@ class HarvestingJobController(object):
             raise
         csw = CswService(url)
         used_identifiers = []
-        # XXX Don't we want services and series too!
-        for identifier in csw.getidentifiers(qtype='dataset', page=10):
+        for identifier in csw.getidentifiers(page=10):
             log.info('Got identifier %s from the CSW', identifier)
             if identifier in used_identifiers:
                 log.error('CSW identifier %r already used, skipping...' % identifier)
