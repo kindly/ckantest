@@ -38,6 +38,8 @@ def decode_response(resp):
 
 def gen_new_name(title):
     name = munge_title_to_name(title).replace('_', '-')
+    while '--' in name:
+        name = name.replace('--', '-')
     like_q = u"%s%%" % name
     pkg_query = model.Session.query(model.Package).filter(model.Package.name.ilike(like_q)).limit(100)
     taken = [pkg.name for pkg in pkg_query]
@@ -144,21 +146,27 @@ class HarvestingJobController(object):
         if len(harvested_documents) > 1:
             # A programming error; should never happen
             raise Exception(
-                "More than one harvested document GUID %s" % gemini_guid)
+                "More than one harvested document GUID %s" % gemini_guid
+            )
         elif len(harvested_documents) == 1:
              # we've previously harvested this (i.e. it's an update)
             harvested_doc = harvested_documents[0]
             if harvested_doc.source is None:
                 # The source has been deleted, we can re-use it
-                self.job.report['errors'].append('This document existed from another source which was deleted, using your document instead')
+                log.info('This document existed from another source which was deleted, using your document instead')
                 harvested_doc.source = self.job.source
+                package = harvested_doc.package
+                harvested_doc.save()
+                return package
             if harvested_doc.source.id != self.job.source.id:
                 # A 'user' error: there are two or more sources
                 # pointing to the same harvested document
                 raise HarvesterError(
-                    "Another source is using metadata GUID %s" % \
-                                    self.job.source.id)
-            # XXX Not strictly true - we need to check the title, package resources etc
+                    "Another source %s is using metadata GUID %s" % (
+                        harvested_doc.source.id,
+                        gemini_guid,
+                    )
+                )
             if harvested_doc.content == content:
                 log.info("Document with GUID %s unchanged, skipping..." % (gemini_guid))
                 return None
@@ -171,7 +179,21 @@ class HarvestingJobController(object):
             'INSPIRE': 'True',
         }
         # Just add some of the metadata as extras, not the whole lot
-        for name in ['bbox-east-long', 'bbox-north-lat', 'bbox-south-lat', 'bbox-west-long', 'guid']:
+        for name in [
+            # Essentials
+            'bbox-east-long', 
+            'bbox-north-lat', 
+            'bbox-south-lat', 
+            'bbox-west-long', 
+            'guid', 
+            # Usefuls
+            'spatial-reference-system',
+            "keyword-inspire-theme",
+            'dataset-reference-date',
+            'resource-type',
+            'metadata-language', # Language
+            'metadata-date', # Released
+        ]:
             extras[name] = gemini_values[name]
 
         name = gen_new_name(gemini_values['title'])
@@ -268,7 +290,7 @@ class HarvestingJobController(object):
             self.job.report['errors'].append('se: %r'%str(e))
         else:
             if package:
-                self.job.report['added'].append(package.id)
+                self.job.report['added'].append(package.name)
 
     def harvest_csw_documents(self, url):
         try:

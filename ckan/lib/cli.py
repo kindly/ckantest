@@ -893,16 +893,19 @@ class Harvester(CkanCommand):
                         pylons.config.get("ckan.harvestor.validator.profiles", "iso19139,gemini2"
                                           ).split(",")]
             validator = Validator(profiles=profiles)
+            print ""
+            for job in jobs:
+                jobs_count += 1
+                if job.source is None:
+                    print 'XXXXXXXX ERRROR, no source associated with this job'
+                else:
+                    print "Running job %s/%s: %s" % (jobs_count, jobs_len, job.id)
+                    self.print_harvesting_job(job)
+                    job_controller = HarvestingJobController(job, validator)
+                    job_controller.harvest_documents()
+                    pprint (job.report)
         else:
             print "There are no new harvesting jobs."
-        print ""
-        for job in jobs:
-            jobs_count += 1
-            print "Running job %s/%s: %s" % (jobs_count, jobs_len, job.id)
-            self.print_harvesting_job(job)
-            job_controller = HarvestingJobController(job, validator)
-            job_controller.harvest_documents()
-            pprint (job.report)
         ### kludge since front page and packages now use the FTS index
         from ckan.lib.search import rebuild
         rebuild()
