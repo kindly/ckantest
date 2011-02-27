@@ -146,10 +146,15 @@ class DictProxy(object):
 
     def __set__(self, obj, value):
 
-        proxied_dict = getattr(obj, self.target_dict)
-        if proxied_dict is None:
-            proxied_dict = {}
+        proxied_dict = getattr(obj, self.target_dict) or {}
+
+        # keep field null if there is no change
+        if not proxied_dict and value:
             setattr(obj, self.target_dict, proxied_dict)
+
+        ## do not set a blank value UNLESS there is a value already there
+        if not value and not self.target_key in proxied_dict:
+            return
 
         proxied_dict[self.target_key] = self.data_type(value)
 
