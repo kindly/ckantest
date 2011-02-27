@@ -51,6 +51,8 @@ class TestChangesetRegister(TestCase):
         self.changes = ChangeRegister()
 
     def teardown(self):
+        model.repo.delete_all()
+        return
         self.changesets = None
         for name in [u'annie', u'annie1', u'annie2']:
             annie = self.packages.get(name, None, attr='name')
@@ -464,6 +466,8 @@ class TestChangeset(TestCase):
         model.Session.commit()
 
     def teardown(self):
+        model.repo.delete_all()
+        return
         super(TestChangeset, self).teardown()
         self.changeset.purge()
         model.Session.commit()
@@ -486,7 +490,8 @@ class TestChange(TestCase):
         model.Session.commit()
 
     def teardown(self):
-        self.change.purge()
+        model.repo.delete_all()
+        return
         model.Session.commit()
         model.Session.remove()
         super(TestChange, self).teardown()

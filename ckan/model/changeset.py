@@ -686,6 +686,7 @@ class Changeset(ChangesetSubdomainObject):
         )
         Session.add(self) # Otherwise revision_id isn't persisted.
         self.revision_id = revision_id
+        Session().object_revisioned = True
         Session.commit()
         register.move_working(self.id)
         return revision_id
@@ -1454,11 +1455,13 @@ class ChangesetRegister(AbstractChangesetRegister):
                 entity = change.apply(is_forced=is_forced, moderator=moderator)
                 if entity:
                     report['deleted'].append(entity)
+            Session().object_revisioned = True
             Session.commit()
             for change in updating:
                 entity = change.apply(is_forced=is_forced, moderator=moderator)
                 if entity:
                     report['updated'].append(entity)
+            Session().object_revisioned = True
             Session.commit()
             created_entities = []  # Must configure access for new entities.
             for change in creating:
@@ -1468,11 +1471,13 @@ class ChangesetRegister(AbstractChangesetRegister):
                     created_entities.append(entity)
             Session.commit()
         except Exception, inst:
+            Session.rollback()
+            raise
             try:
                 from ckan.model import repo as repository
                 repository.purge_revision(revision) # Commits and removes session.
             except:
-                print "Error: Couldn't purge revision: %s" % revision
+                print "Error: Couldn't purge revision"#: %s" % revision
             raise inst
         revision_id = revision.id
         # Setup access control for created entities.

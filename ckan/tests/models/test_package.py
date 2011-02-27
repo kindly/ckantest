@@ -232,6 +232,8 @@ class TestPackageRevisions:
         model.repo.init_db()
         self.name = u'revisiontest'
 
+        self.revision_count = model.Session.query(model.Revision).count()
+
         # create pkg
         self.notes = [u'Written by Puccini', u'Written by Rossini', u'Not written at all', u'Written again', u'Written off']
         rev = model.repo.new_revision()
@@ -248,6 +250,13 @@ class TestPackageRevisions:
             pkg1.notes = self.notes[i]
             pkg1.extras['mykey'] = self.notes[i]
             model.repo.commit_and_remove()
+
+        #Test empty change
+        rev = model.repo.new_revision()
+        pkg1.notes = pkg1.notes + "x"
+        pkg1.notes = pkg1.notes[:-1]
+        model.Session.add(pkg1)
+        model.repo.commit_and_remove()
 
         self.pkg1 = model.Package.by_name(self.name)        
 
@@ -277,6 +286,14 @@ class TestPackageRevisions:
         out = pkg.metadata_modified
         exp = all_rev[0].revision.timestamp
         assert out == exp, (out, exp)
+
+    def test_03_empty_revision_not_created(self):
+        
+        new_revision_count = model.Session.query(model.Revision).count()
+
+        expected_count = self.revision_count + len(self.notes)
+
+        assert new_revision_count == expected_count, (new_revision_count, expected_count) 
         
 
 class TestRelatedRevisions:

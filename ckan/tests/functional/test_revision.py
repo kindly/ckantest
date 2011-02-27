@@ -19,6 +19,8 @@ class TestRevisionController(TestController):
     def create_40_revisions(self):
         for i in range(0,40):
             rev = model.repo.new_revision()
+            ## allow for empty revisions
+            model.Session().object_revisioned = True
             rev.author = "Test Revision %s" % i
             model.repo.commit()
 
