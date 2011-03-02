@@ -193,25 +193,32 @@ class HarvestingJobController(object):
             'guid', 
             # Usefuls
             'spatial-reference-system',
-            "keyword-inspire-theme",
             'dataset-reference-date',
             'resource-type',
             'metadata-language', # Language
             'metadata-date', # Released
         ]:
             extras[name] = gemini_values[name]
-
-        name = gen_new_name(gemini_values['title'])
-        if not name:
-            name = gen_new_name(str(gemini_guid))
-        if not name:
-            raise Exception('Could not generate a unique name from the title or the GUID. Please choose a more unique title.')
+        extras['constraint'] = '; '.join(gemini_values.get("use-constraints", '')+gemini_values.get("limitations-on-public-access"))
+        if gemini_values.has_key('temporal-extent-begin'):
+            #gemini_values['temporal-extent-begin'].sort()
+            extras['temporal_coverage-from'] = gemini_values['temporal-extent-begin']
+        if gemini_values.has_key('temporal-extent-end'):
+            #gemini_values['temporal-extent-end'].sort()
+            extras['temporal_coverage-to'] = gemini_values['temporal-extent-end']
         package_data = {
-            'name': name,
             'title': gemini_values['title'],
             'notes': gemini_values['abstract'],
             'extras': extras,
+            'tags': gemini_values['tags'],
         }
+        if package is None or package.title != gemini_values['title']:
+            name = gen_new_name(gemini_values['title'])
+            if not name:
+                name = gen_new_name(str(gemini_guid))
+            if not name:
+                raise Exception('Could not generate a unique name from the title or the GUID. Please choose a more unique title.')
+            package_data['name'] = name
         resource_locator = gemini_values.get('resource-locator', []) and gemini_values['resource-locator'][0].get('url') or ''
         if resource_locator:
             package_data['resources'] = [
@@ -220,23 +227,24 @@ class HarvestingJobController(object):
                     'description': 'Resource locator',
                     'format': 'Unverified',
                 },
-                {
-                    'url': '%s/api/2/rest/harvesteddocument/%s/xml/%s.xml'%(
-                        config.get('ckan.api_url', '/').rstrip('/'),
-                        gemini_guid, 
-                        gemini_guid,
-                    ),
-                    'description': 'Source GEMINI 2 document',
-                    'format': 'XML',
-                },
-                {
-                    'url': '%s/api/rest/harvesteddocument/%s/html'%(
-                        config.get('ckan.api_url', '/').rstrip('/'),
-                        gemini_guid,
-                    ),
-                    'description': 'Formatted GEMINI 2 document', 
-                    'format': 'HTML',
-                },
+                # These are generated in Drupal now
+                #{
+                #    'url': '%s/api/2/rest/harvesteddocument/%s/xml/%s.xml'%(
+                #        config.get('ckan.api_url', '/').rstrip('/'),
+                #        gemini_guid, 
+                #        gemini_guid,
+                #    ),
+                #    'description': 'Source GEMINI 2 document',
+                #    'format': 'XML',
+                #},
+                #{
+                #    'url': '%s/api/rest/harvesteddocument/%s/html'%(
+                #        config.get('ckan.api_url', '/').rstrip('/'),
+                #        gemini_guid,
+                #    ),
+                #    'description': 'Formatted GEMINI 2 document', 
+                #    'format': 'HTML',
+                #},
             ]
         if package == None:
             # Create new package from data.
@@ -333,8 +341,8 @@ class HarvestingJobController(object):
                 ## parsed metadata...
                 log.info('Parsing the record XML len %s', len(record['xml']))
                 self.harvest_gemini_document(record['xml'])
-        except:
-            self.job.report['errors'].append('Problem connecting to the CSW')
+        except Exception, e:
+            self.job.report['errors'].append('Problem connecting to the CSW: %s'%e)
 
     def harvest_waf_documents(self, content):
         for url in self.extract_urls(content):

@@ -439,8 +439,8 @@ class GeminiDocument(MappedXmlDocument):
         GeminiElement(
             name="limitations-on-public-access",
             search_paths=[
-                "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:resourceConstraints/gmd:MD_LegalConstraints/gmd:accessConstraints/gmd:otherConstraints/gco:CharacterString/text()",
-                "gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:resourceConstraints/gmd:MD_LegalConstraints/gmd:accessConstraints/gmd:otherConstraints/gco:CharacterString/text()",
+                "gmd:identificationInfo/gmd:MD_DataIdentification/gmd:resourceConstraints/gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString/text()",
+                "gmd:identificationInfo/srv:SV_ServiceIdentification/gmd:resourceConstraints/gmd:MD_LegalConstraints/gmd:otherConstraints/gco:CharacterString/text()",
             ],
             multiplicity="1..*",
         ),
@@ -667,12 +667,12 @@ class GeminiDocument(MappedXmlDocument):
         values['url'] = value
 
     def infer_tags(self, values):
-        value = []
-        value += values['keyword-inspire-theme']
-        value += values['keyword-controlled-other']
-        value += values['keyword-free-text']
-        value = list(set(value))
-        values['tags'] = value
+        tags = []
+        for key in ['keyword-inspire-theme', 'keyword-controlled-other', 'keyword-free-text']:
+            for item in values[key]:
+                if item not in tags:
+                    tags.append(item)
+        values['tags'] = tags
 
     def infer_publisher(self, values):
         value = ''
