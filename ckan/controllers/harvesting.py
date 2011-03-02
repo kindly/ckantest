@@ -157,19 +157,24 @@ class HarvestingJobController(object):
                 harvested_doc.source = self.job.source
                 package = harvested_doc.package
                 harvested_doc.save()
-                return package
+                package.save()
+                return None
             if harvested_doc.source.id != self.job.source.id:
                 # A 'user' error: there are two or more sources
                 # pointing to the same harvested document
                 raise HarvesterError(
-                    "Another source %s is using metadata GUID %s" % (
-                        harvested_doc.source.id,
+                    "Another source %s (publisher %s, user %s) is using metadata GUID %s" % (
+                        harvested_doc.source.url,
+                        harvested_doc.source.publisher_ref,
+                        harvested_doc.source.user_ref,
                         gemini_guid,
                     )
                 )
             if harvested_doc.content == content:
                 log.info("Document with GUID %s unchanged, skipping..." % (gemini_guid))
                 return None
+            else:
+                log.info("Harvested document with GUID %s has changed, re-creating..." % (gemini_guid))
             log.info("Updating package for %s" % gemini_guid)
             package = harvested_doc.package
         else:
@@ -225,9 +230,8 @@ class HarvestingJobController(object):
                     'format': 'XML',
                 },
                 {
-                    'url': '%s/api/2/rest/harvesteddocument/%s/html/%s.html'%(
+                    'url': '%s/api/rest/harvesteddocument/%s/html'%(
                         config.get('ckan.api_url', '/').rstrip('/'),
-                        gemini_guid, 
                         gemini_guid,
                     ),
                     'description': 'Formatted GEMINI 2 document', 
@@ -238,20 +242,27 @@ class HarvestingJobController(object):
             # Create new package from data.
             package = self._create_package_from_data(package_data)
             log.info("Created new package ID %s with GEMINI guid %s", package.id, gemini_guid)
+            harvested_doc = HarvestedDocument(
+                content=content,
+                guid=gemini_guid,
+                package=package,
+                source=self.job.source,
+            )
+            harvested_doc.save()
+            if not harvested_doc.source_id:
+                raise Exception('Failed to set the source for document %r'%harvested_doc.id)
+            assert gemini_guid == package.documents[0].guid
+            return package
         else:
             package = self._update_package_from_data(package, package_data)
             log.info("Updated existing package ID %s with existing GEMINI guid %s", package.id, gemini_guid)
-        harvested_doc = HarvestedDocument(
-            content=content,
-            guid=gemini_guid,
-            package=package,
-            source=self.job.source,
-        )
-        harvested_doc.save()
-        if not harvested_doc.source_id:
-            raise Exception('Failed to set the source for document %r'%harvested_doc.id)
-        assert gemini_guid == package.documents[0].guid
-        return package
+            harvested_doc.content = content
+            harvested_doc.source = self.job.source
+            harvested_doc.save()
+            if not harvested_doc.source_id:
+                raise Exception('Failed to set the source for document %r'%harvested_doc.id)
+            assert gemini_guid == package.documents[0].guid
+            return package
 
     def get_content(self, url):
         try:
@@ -301,26 +312,29 @@ class HarvestingJobController(object):
             raise
         csw = CswService(url)
         used_identifiers = []
-        for identifier in csw.getidentifiers(page=10):
-            log.info('Got identifier %s from the CSW', identifier)
-            if identifier in used_identifiers:
-                log.error('CSW identifier %r already used, skipping...' % identifier)
-                continue
-            if identifier is None:
-                self.job.report['errors'].append('CSW returned identifier %r, skipping...' % identifier)
-                log.error('CSW returned identifier %r, skipping...' % identifier)
-                ## log an error here? happens with the dutch data
-                continue
-            used_identifiers.append(identifier)
-            record = csw.getrecordbyid([identifier])
-            if record is None:
-                self.job.report['errors'].append('Empty record for ID %s' % identifier)
-                log.error('Empty record for ID %s' % identifier)
-                continue
-            ## we could maybe do something better here by using the
-            ## parsed metadata...
-            log.info('Parsing the record XML len %s', len(record['xml']))
-            self.harvest_gemini_document(record['xml'])
+        try:
+            for identifier in csw.getidentifiers(page=10):
+                log.info('Got identifier %s from the CSW', identifier)
+                if identifier in used_identifiers:
+                    log.error('CSW identifier %r already used, skipping...' % identifier)
+                    continue
+                if identifier is None:
+                    self.job.report['errors'].append('CSW returned identifier %r, skipping...' % identifier)
+                    log.error('CSW returned identifier %r, skipping...' % identifier)
+                    ## log an error here? happens with the dutch data
+                    continue
+                used_identifiers.append(identifier)
+                record = csw.getrecordbyid([identifier])
+                if record is None:
+                    self.job.report['errors'].append('Empty record for ID %s' % identifier)
+                    log.error('Empty record for ID %s' % identifier)
+                    continue
+                ## we could maybe do something better here by using the
+                ## parsed metadata...
+                log.info('Parsing the record XML len %s', len(record['xml']))
+                self.harvest_gemini_document(record['xml'])
+        except:
+            self.job.report['errors'].append('Problem connecting to the CSW')
 
     def harvest_waf_documents(self, content):
         for url in self.extract_urls(content):
