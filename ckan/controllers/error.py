@@ -30,7 +30,7 @@ class ErrorController(BaseController):
             return original_response.body
         # Otherwise, decorate original response with error template.
         ckan_template = render('error_document_template.html')
-        content = literal(original_response.body) or cgi.escape(request.GET.get('message', ''))
+        content = literal(original_response.unicode_body) or cgi.escape(request.GET.get('message', ''))
         page = ckan_template % \
             dict(prefix=request.environ.get('SCRIPT_NAME', ''),
                  code=cgi.escape(request.GET.get('code', str(original_response.status_int))),
