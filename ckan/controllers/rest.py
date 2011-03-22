@@ -41,24 +41,6 @@ class BaseApiController(BaseController):
         else:
             return BaseController.__call__(self, environ, start_response)
 
-    @classmethod
-    def _ref_package(cls, package):
-        assert cls.ref_package_by in ['id', 'name']
-        return getattr(package, cls.ref_package_by)
-
-    @classmethod
-    def _ref_group(cls, group):
-        assert cls.ref_group_by in ['id', 'name']
-        return getattr(group, cls.ref_group_by)
-
-    @classmethod
-    def _list_package_refs(cls, packages):
-        return [getattr(p, cls.ref_package_by) for p in packages]
-
-    @classmethod
-    def _list_group_refs(cls, groups):
-        return [getattr(p, cls.ref_group_by) for p in groups]
-
     def _finish(self, status_int, response_data=None,
                 content_type='text'):
         '''When a controller method has completed, call this method
