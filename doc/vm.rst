@@ -212,7 +212,7 @@ to allow yourself to install CKAN:
 
 Now that you have the repo added you can install and test CKAN as normal.
 
-Here's how mine look:
+Here's how mine looks:
 
 ::
 
