@@ -282,6 +282,10 @@ Install nose into your virtual environment if you haven't already::
 
     pip install --ignore-installed nose
 
+Install the dependencies for tests::
+
+    pip install --ignore-installed -r pyenv/src/ckan/pip-requirements-test.txt
+
 At this point you will need to deactivate and then re-activate your
 virtual environment to ensure that all the scripts point to the correct
 locations:
@@ -312,7 +316,7 @@ You *must* run the tests from the CKAN directory as shown above, otherwise the
 Test configurations
 -------------------
 
-The default way to run tests is defined in test.ini (which is the default config file for nose - change it with option "--with-pylons"). This specifies to use Sqlite and sets faster_db_test_hacks, which are compromises.
+The default way to run tests is defined in test.ini (which is the default config file for nose - change it with option "--with-pylons"). This specifies to use Sqlite and takes short cuts when clearing out the database between tests, which are compromises.
 
 ::
 
@@ -333,7 +337,7 @@ To test against PosgreSQL:
 
      nosetests ckan/tests --ckan --with-pylons=test-core.ini
  
-The test suite takes a long time to run against standard PostgreSQL (approx. 15 minutes, or close to an hour on Ubuntu/10.04 Lucid).
+The test suite takes a long time to run against standard PostgreSQL (approx. 15 minutes, or close to an hour on some machines (maybe a 64 bit issue?).
 
 This can be improved to between 5 and 15 minutes by running PostgreSQL in memory and turning off durability, as described at <http://www.postgresql.org/docs/9.0/static/non-durability.html>. 
 
