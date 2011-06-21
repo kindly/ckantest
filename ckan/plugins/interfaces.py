@@ -8,6 +8,7 @@ __all__ = [
     'IGenshiStreamFilter', 'IRoutes',
     'IMapper', 'ISession',
     'IMiddleware',
+    'IAuthFunctions',
     'IDomainObjectModification', 'IGroupController', 
     'IPackageController', 'IPluginObserver',
     'IConfigurable', 'IConfigurer', 'IAuthorizer'
@@ -273,7 +274,7 @@ class IConfigurer(Interface):
         :param config: ``pylons.config`` object
         """
 
-
+# Note: This is now deprecated
 class IAuthorizer(Interface):
     """
     Allow customisation of default Authorization implementation
@@ -300,4 +301,13 @@ class IAuthorizer(Interface):
         other Authorizers to run; True will shortcircuit and return.
         """
         
+class IAuthFunctions(Interface):
+    """
+    Allow customisation of default Authorization implementation
+    """
+    def get_auth_functions(self):
+        """
+        Returns a dict of all the authorization functions which the
+        implementation overrides
+        """
 
