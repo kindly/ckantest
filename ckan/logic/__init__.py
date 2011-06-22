@@ -1,5 +1,7 @@
 import logging
 import ckan.authz
+import ckan.new_authz as new_authz
+
 from ckan.lib.navl.dictization_functions import flatten_dict
 
 class ActionError(Exception):
@@ -71,21 +73,20 @@ def flatten_to_string_key(dict):
     flattented = flatten_dict(dict)
     return untuplize_dict(flattented)
 
-def check_access(entity, action, context):
+def check_access(action, data_dict, object_id, object_type, context):
     model = context["model"]
     user = context.get("user")
 
     log.debug('check access - user %r' % user)
     
-    if action and entity and not isinstance(entity, model.PackageRelationship):
+    if action and data_dict and object_type != 'package_relationship':
         if action != model.Action.READ and user in (model.PSEUDO_USER__VISITOR, ''):
             log.debug("Valid API key needed to make changes")
             raise NotAuthorized
-        
-        am_authz = ckan.authz.Authorizer().is_authorized(user, action, entity)
-        if not am_authz:
-            log.debug("User is not authorized to %s %s" % (action, entity))
-            raise NotAuthorized
+
+        if not new_authz.check_overridden(action, object_id, object_type, context):
+            new_authz.is_authorized(action, data_dict, object_id, object_type, context)
+
     elif not user:
         log.debug("No valid API key provided.")
         raise NotAuthorized

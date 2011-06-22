@@ -45,13 +45,13 @@ from ckan.plugins import PluginImplementations
 # be accessed directly
 _fetched_auth_functions = None
 
-def is_authorized(logic_function_name, data_dict, context):
-    auth_function = _get_auth_function(logic_function_name)
+def is_authorized(context, action=None, data_dict=None, object_id=None, object_type=None):
+    auth_function = _get_auth_function(action)
     return auth_function(data_dict, context)
 
-def _get_auth_function(logic_function_name):
+def _get_auth_function(action):
     if _fetched_auth_functions is not None:
-        return _fetched_auth_functions[logic_function_name]
+        return _fetched_auth_functions[action]
     # Otherwise look in all the plugins to resolve all possible
     global _fetched_auth_functions
     # First get the default ones in the ckan/logic/auth directory
@@ -85,5 +85,26 @@ def _get_auth_function(logic_function_name):
                 _fetched_auth_functions[name] = auth_function
     # Use the updated ones in preference to the originals.
     _fetched_auth_functions.update(default_auth_functions)
-    return _fetched_auth_functions[logic_function_name]
+    return _fetched_auth_functions[action]
 
+def check_overridden(context, action, object_id, object_type):
+
+    model = context["model"]
+    user = context["user"]
+    session = model.Session
+
+    if not object_id or not object_type:
+        return False
+    user = session.query(model.User).filter_by(name=user).first()
+    q = session.query(model.AuthorizationOverride).filter_by(user=user.id,
+                                                         object_id=object_id,
+                                                         object_type=object_type)
+    roles = [override.role for override in q.all()]
+    if not roles:
+        return False
+
+    ra = session.query(model.RoleAction).filter(
+        model.RoleAction.role.in_(roles)).filter_by(action=action).first()
+    if ra:
+        return True
+    return False
