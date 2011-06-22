@@ -9,7 +9,7 @@ from group import Group
 from types import make_uuid
 from user import User
 from core import System
-from authorization_group import AuthorizationGroup, authorization_group_table
+#from authorization_group import AuthorizationGroup, authorization_group_table
 
 PSEUDO_USER__LOGGED_IN = u'logged_in'
 PSEUDO_USER__VISITOR = u'visitor'
@@ -90,32 +90,47 @@ role_action_table = Table('role_action', metadata,
            Column('action', UnicodeText),
            )
 
-user_object_role_table = Table('user_object_role', metadata,
+authorization_override_table = Table(
+           'authorization_override', metadata,
            Column('id', UnicodeText, primary_key=True, default=make_uuid),
            Column('user_id', UnicodeText, ForeignKey('user.id'), nullable=True),
-           Column('authorized_group_id', UnicodeText, ForeignKey('authorization_group.id'), nullable=True),
-           Column('context', UnicodeText, nullable=False),
+           #Column('authorized_group_id', UnicodeText, ForeignKey('authorization_group.id'), nullable=True),
+           Column('object_id', UnicodeText, nullable=False),
+           Column('object_type', UnicodeText, nullable=False),
            Column('role', UnicodeText)
            )
 
-package_role_table = Table('package_role', metadata,
-           Column('user_object_role_id', UnicodeText, ForeignKey('user_object_role.id'), primary_key=True),
-           Column('package_id', UnicodeText, ForeignKey('package.id')),
-           )
+user_group_table = Table(
+           'user_group', metadata,
+           Column('id', UnicodeText, primary_key=True, default=make_uuid),
+           Column('name', UnicodeText, nullable=False),
+           Column('parent_id', UnicodeText, nullable=True),
+)
 
-group_role_table = Table('group_role', metadata,
-           Column('user_object_role_id', UnicodeText, ForeignKey('user_object_role.id'), primary_key=True),
-           Column('group_id', UnicodeText, ForeignKey('group.id')),
-           )
-           
-authorization_group_role_table = Table('authorization_group_role', metadata,
-           Column('user_object_role_id', UnicodeText, ForeignKey('user_object_role.id'), primary_key=True),
-           Column('authorization_group_id', UnicodeText, ForeignKey('authorization_group.id')),
-           )
+user_group_extra_table = Table(
+           'user_group_extra', metadata,
+           Column('id', UnicodeText, primary_key=True, default=make_uuid),
+           Column('user_group_id', UnicodeText, ForeignKey('user_group.id'), nullable=False),
+           Column('key', UnicodeText, nullable=False),
+           Column('value', UnicodeText, nullable=False),
+)
 
-system_role_table = Table('system_role', metadata,
-           Column('user_object_role_id', UnicodeText, ForeignKey('user_object_role.id'), primary_key=True),
-           )
+user_group_user_table = Table(
+           'user_group_user', metadata,
+           Column('id', UnicodeText, primary_key=True, default=make_uuid),
+           Column('user_group_id', UnicodeText, ForeignKey('user_group.id'), nullable=False),
+           Column('user_id', UnicodeText, ForeignKey('user.id'), nullable=False),
+           Column('capacity', UnicodeText),
+)
+
+user_group_package_table = Table(
+           'user_group_package', metadata,
+           Column('id', UnicodeText, primary_key=True, default=make_uuid),
+           Column('user_group_id', UnicodeText, ForeignKey('user_group.id'), nullable=False),
+           Column('package_id', UnicodeText, ForeignKey('package.id'), nullable=False),
+           Column('capacity', UnicodeText),
+)
+
 
 
 class RoleAction(DomainObject):
@@ -127,7 +142,7 @@ class RoleAction(DomainObject):
 # dictionary mapping protected objects (e.g. Package) to related ObjectRole
 protected_objects = {}
 
-class UserObjectRole(DomainObject):
+class AuthorizationOverride(DomainObject):
     name = None
     protected_object = None
 
@@ -233,25 +248,6 @@ class UserObjectRole(DomainObject):
         Session.commit()
         Session.remove()
 
-class PackageRole(UserObjectRole):
-    protected_object = Package
-    name = 'package'
-protected_objects[PackageRole.protected_object] = PackageRole
-
-class GroupRole(UserObjectRole):
-    protected_object = Group
-    name = 'group'
-protected_objects[GroupRole.protected_object] = GroupRole
-
-class AuthorizationGroupRole(UserObjectRole):
-    protected_object = AuthorizationGroup
-    name = 'authorization_group'
-protected_objects[AuthorizationGroupRole.protected_object] = AuthorizationGroupRole
-
-class SystemRole(UserObjectRole):
-    protected_object = System
-    name = None
-protected_objects[SystemRole.protected_object] = SystemRole
 
 
 
@@ -422,62 +418,14 @@ def clear_user_roles(domain_object):
 
 mapper(RoleAction, role_action_table)
        
-mapper(UserObjectRole, user_object_role_table,
-    polymorphic_on=user_object_role_table.c.context,
-    polymorphic_identity=u'user_object',
+mapper(AuthorizationOverride, authorization_override_table,
     properties={
         'user': orm.relation(User,
             backref=orm.backref('roles',
                 cascade='all, delete, delete-orphan'
             )
         ),
-        'authorized_group': orm.relation(AuthorizationGroup,
-            backref=orm.backref('authorized_roles',
-                cascade='all, delete, delete-orphan'
-            )
-        )
     },
-    order_by=[user_object_role_table.c.id],
+    order_by=[authorization_override_table.c.id],
 )
 
-mapper(PackageRole, package_role_table, inherits=UserObjectRole,
-    polymorphic_identity=unicode(Package.__name__),
-    properties={
-        'package': orm.relation(Package,
-             backref=orm.backref('roles',
-             cascade='all, delete, delete-orphan'
-             )
-        ),
-    },
-    order_by=[package_role_table.c.user_object_role_id],
-)
-
-mapper(GroupRole, group_role_table, inherits=UserObjectRole,
-       polymorphic_identity=unicode(Group.__name__),
-       properties={
-            'group': orm.relation(Group,
-                 backref=orm.backref('roles',
-                 cascade='all, delete, delete-orphan'
-                 ),
-            )
-    },
-    order_by=[group_role_table.c.user_object_role_id],
-)
-
-mapper(AuthorizationGroupRole, authorization_group_role_table, inherits=UserObjectRole,
-       polymorphic_identity=unicode(AuthorizationGroup.__name__),
-       properties={
-            'authorization_group': orm.relation(AuthorizationGroup,
-                 backref=orm.backref('roles',
-                    primaryjoin=authorization_group_table.c.id==authorization_group_role_table.c.authorization_group_id,
-                    cascade='all, delete, delete-orphan'
-                 ),
-            )
-    },
-    order_by=[authorization_group_role_table.c.user_object_role_id],
-)
-
-mapper(SystemRole, system_role_table, inherits=UserObjectRole,
-       polymorphic_identity=unicode(System.__name__),
-       order_by=[system_role_table.c.user_object_role_id],
-)

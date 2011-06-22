@@ -109,6 +109,7 @@ class Repository(vdm.sqlalchemy.Repository):
         has shortcuts.
         '''
         self.metadata.create_all(bind=self.metadata.bind)    
+        return
         self.init_const_data()
         self.init_configuration_data()
 
