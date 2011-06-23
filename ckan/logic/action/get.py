@@ -165,9 +165,10 @@ def package_show(context):
 
     if pkg is None:
         raise NotFound
-    check_access(pkg, model.Action.READ, context)
 
     package_dict = package_dictize(pkg, context)
+
+    check_access(context, 'package_show', package_dict)
 
     for item in PluginImplementations(IPackageController):
         item.read(pkg)

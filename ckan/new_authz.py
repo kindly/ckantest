@@ -43,19 +43,21 @@ from ckan.plugins import PluginImplementations
 
 # This is a private cache used by get_auth_function() and should never
 # be accessed directly
-_fetched_auth_functions = None
+_auth_functions = {}
 
 def is_authorized(context, action=None, data_dict=None, object_id=None, object_type=None):
     auth_function = _get_auth_function(action)
-    return auth_function(data_dict, context)
+    if auth_function:
+        return auth_function(data_dict, context)
+    else:
+        return True
 
 def _get_auth_function(action):
-    if _fetched_auth_functions is not None:
-        return _fetched_auth_functions[action]
+    if _auth_functions:
+        return _auth_functions.get('action')
     # Otherwise look in all the plugins to resolve all possible
-    global _fetched_auth_functions
+    global _auth_functions
     # First get the default ones in the ckan/logic/auth directory
-    default_auth_functions = {}
     # Rather than writing them out in full will use __import__
     # to load anything from ckan.auth that looks like it might
     # be an authorisation function
@@ -66,10 +68,10 @@ def _get_auth_function(action):
             module = getattr(module, part)
         for k, v in module.__dict__.items():
             if not k.startswith('_'):
-                default_auth_functions[k] = v
+                _auth_functions[k] = v
     # Then overwrite them with any specific ones in the plugins:
     resolved_auth_function_plugins = {}
-    _fetched_auth_functions = {}
+    fetched_auth_functions = {}
     for plugin in PluginImplementations(IAuthFunctions):
         for name, auth_function in plugin.get_auth_functions().items():
             if name in resolved_auth_function_plugins:
@@ -79,13 +81,12 @@ def _get_auth_function(action):
                         resolved_auth_function_plugins[name]
                     )
                 )
-            else:
-                log.debug('Auth function %r was inserted', plugin.name)
-                resolved_auth_function_plugins[name] = plugin.name
-                _fetched_auth_functions[name] = auth_function
+            log.debug('Auth function %r was inserted', plugin.name)
+            resolved_auth_function_plugins[name] = plugin.name
+            fetched_auth_functions[name] = auth_function
     # Use the updated ones in preference to the originals.
-    _fetched_auth_functions.update(default_auth_functions)
-    return _fetched_auth_functions[action]
+    _auth_functions.update(fetched_auth_functions)
+    return _auth_functions.get('action')
 
 def check_overridden(context, action, object_id, object_type):
 
@@ -96,7 +97,9 @@ def check_overridden(context, action, object_id, object_type):
     if not object_id or not object_type:
         return False
     user = session.query(model.User).filter_by(name=user).first()
-    q = session.query(model.AuthorizationOverride).filter_by(user=user.id,
+    if not user:
+        return False
+    q = session.query(model.AuthorizationOverride).filter_by(user_id=user.id,
                                                          object_id=object_id,
                                                          object_type=object_type)
     roles = [override.role for override in q.all()]

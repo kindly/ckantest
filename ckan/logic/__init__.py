@@ -73,7 +73,7 @@ def flatten_to_string_key(dict):
     flattented = flatten_dict(dict)
     return untuplize_dict(flattented)
 
-def check_access(action, data_dict, object_id, object_type, context):
+def check_access(context, action=None, data_dict=None, object_id=None, object_type=None):
     model = context["model"]
     user = context.get("user")
 
@@ -84,8 +84,8 @@ def check_access(action, data_dict, object_id, object_type, context):
             log.debug("Valid API key needed to make changes")
             raise NotAuthorized
 
-        if not new_authz.check_overridden(action, object_id, object_type, context):
-            new_authz.is_authorized(action, data_dict, object_id, object_type, context)
+        if not new_authz.check_overridden(context, action, object_id, object_type):
+            new_authz.is_authorized(context, action, data_dict, object_id, object_type)
 
     elif not user:
         log.debug("No valid API key provided.")
