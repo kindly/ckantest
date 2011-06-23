@@ -5,6 +5,7 @@ from core import *
 from sqlalchemy.orm import eagerload_all
 from domain_object import DomainObject
 from package import *
+from user import *
 from types import make_uuid
 import vdm.sqlalchemy
 from ckan.model import extension
@@ -12,14 +13,18 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 __all__ = ['group_table', 'Group', 'package_revision_table',
            'PackageGroup', 'GroupRevision', 'PackageGroupRevision',
-           'package_group_revision_table']
+           'package_group_revision_table', 'Member', 'member_table',
+           'member_revision_table']
 
-user_group_table = Table('member', metadata,
+member_table = Table('member', metadata,
     Column('id', UnicodeText, primary_key=True, default=make_uuid),
     Column('user_id', UnicodeText, ForeignKey('user.id')),
     Column('group_id', UnicodeText, ForeignKey('group.id')),
     Column('capacity', UnicodeText),
     )
+
+vdm.sqlalchemy.make_table_stateful(member_table)
+member_revision_table = make_revisioned_table(member_table)
 
 package_group_table = Table('package_group', metadata,
     Column('id', UnicodeText, primary_key=True, default=make_uuid),
@@ -46,6 +51,11 @@ group_revision_table = make_revisioned_table(group_table)
 
 
 class PackageGroup(vdm.sqlalchemy.RevisionedObjectMixin,
+        vdm.sqlalchemy.StatefulObjectMixin,
+        DomainObject):
+    pass
+
+class Member(vdm.sqlalchemy.RevisionedObjectMixin,
         vdm.sqlalchemy.StatefulObjectMixin,
         DomainObject):
     pass
@@ -150,6 +160,17 @@ mapper(PackageGroup, package_group_table, properties={
     extension=[vdm.sqlalchemy.Revisioner(package_group_revision_table),],
 )
 
+mapper(Member, member_table, properties={
+    'group': relation(Group,
+        backref=backref('member_all', cascade='all, delete-orphan'),
+    ),
+    'user': relation(User,
+        backref=backref('member_all', cascade='all, delete-orphan'),
+    ),
+},
+    extension=[vdm.sqlalchemy.Revisioner(member_revision_table),],
+)
+
 def _create_group(group):
     return PackageGroup(group=group)
 
@@ -160,9 +181,24 @@ Package.groups = association_proxy('package_group_all', 'group', creator=_create
 Group.packages = association_proxy('package_group_all', 'package', creator=_create_package)
 
 
+def _create_member_group(group):
+    return Member(group=group)
+
+def _create_user(user):
+    return Member(user=user)
+
+User.groups = association_proxy('member_all', 'group', creator=_create_member_group)
+Group.users = association_proxy('member_all', 'user', creator=_create_user)
+
+
 vdm.sqlalchemy.modify_base_object_mapper(PackageGroup, Revision, State)
 PackageGroupRevision = vdm.sqlalchemy.create_object_version(mapper, PackageGroup,
         package_group_revision_table)
+
+
+vdm.sqlalchemy.modify_base_object_mapper(Member, Revision, State)
+MemberRevision = vdm.sqlalchemy.create_object_version(mapper, Member,
+        member_revision_table)
 
 
 from vdm.sqlalchemy.base import add_stateful_versioned_m2m 
