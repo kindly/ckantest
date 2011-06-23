@@ -48,13 +48,13 @@ _auth_functions = {}
 def is_authorized(context, action=None, data_dict=None, object_id=None, object_type=None):
     auth_function = _get_auth_function(action)
     if auth_function:
-        return auth_function(data_dict, context)
+        return auth_function(context, data_dict)
     else:
-        return True
+        return {'success': True}
 
 def _get_auth_function(action):
     if _auth_functions:
-        return _auth_functions.get('action')
+        return _auth_functions.get(action)
     # Otherwise look in all the plugins to resolve all possible
     global _auth_functions
     # First get the default ones in the ckan/logic/auth directory
@@ -86,7 +86,7 @@ def _get_auth_function(action):
             fetched_auth_functions[name] = auth_function
     # Use the updated ones in preference to the originals.
     _auth_functions.update(fetched_auth_functions)
-    return _auth_functions.get('action')
+    return _auth_functions.get(action)
 
 def check_overridden(context, action, object_id, object_type):
 

@@ -159,16 +159,16 @@ def package_show(context):
     api = context.get('api_version') or '1'
     id = context['id']
 
-    pkg = model.Package.get(id)
+    check_access(context, 'package_show', {'id': context['id']})
 
-    context['package'] = pkg
+    pkg = model.Package.get(id)
 
     if pkg is None:
         raise NotFound
 
+    context['package'] = pkg
     package_dict = package_dictize(pkg, context)
 
-    check_access(context, 'package_show', package_dict)
 
     for item in PluginImplementations(IPackageController):
         item.read(pkg)

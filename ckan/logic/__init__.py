@@ -80,15 +80,17 @@ def check_access(context, action=None, data_dict=None, object_id=None, object_ty
     log.debug('check access - user %r' % user)
     
     if action and data_dict and object_type != 'package_relationship':
-        if action != model.Action.READ and user in (model.PSEUDO_USER__VISITOR, ''):
-            log.debug("Valid API key needed to make changes")
-            raise NotAuthorized
-
-        if not new_authz.check_overridden(context, action, object_id, object_type):
-            new_authz.is_authorized(context, action, data_dict, object_id, object_type)
-
+        #if action != model.Action.READ and user in (model.PSEUDO_USER__VISITOR, ''):
+        #    # XXX Check the API key is valid at some point too!
+        #    log.debug("Valid API key needed to make changes")
+        #    raise NotAuthorized
+        logic_authorization = new_authz.is_authorized(context, action, data_dict, object_id, object_type)
+        if not logic_authorization['success']:
+            if not new_authz.check_overridden(context, action, object_id, object_type):
+                raise NotAuthorized(logic_authorization['msg'])
     elif not user:
         log.debug("No valid API key provided.")
-        raise NotAuthorized
+        raise NotAuthorized()
     log.debug("Access OK.")
-    return True                
+    return True
+

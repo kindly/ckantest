@@ -16,6 +16,10 @@ from ckan.logic.schema import (default_update_group_schema,
 from ckan.lib.navl.dictization_functions import validate
 log = logging.getLogger(__name__)
 
+#
+# Helpers (could be moved elsewhere)
+#
+
 def prettify(field_name):
     field_name = re.sub('(?<!\w)[Uu]rl(?!\w)', 'URL', field_name.replace('_', ' ').capitalize())
     return _(field_name.replace('_', ' '))
@@ -46,31 +50,6 @@ def group_error_summary(error_dict):
             error_summary[_(prettify(key))] = error[0]
     return error_summary
 
-def check_group_auth(data_dict, context):
-    model = context['model']
-    pkg = context.get("package")
-
-    ## hack as api does not allow groups
-    if context.get("allow_partial_update"):
-        return
-    
-    group_dicts = data_dict.get("groups", [])
-    groups = set()
-    for group_dict in group_dicts:
-        id = group_dict.get('id')
-        if not id:
-            continue
-        grp = model.Group.get(id)
-        if grp is None:
-            raise NotFound(_('Group was not found.'))
-        groups.add(grp)
-
-    if pkg:
-        groups = groups - set(pkg.groups)
-
-    for group in groups:
-        check_access(group, model.Action.EDIT, context)
-
 def _make_latest_rev_active(context, q):
 
     session = context['model'].Session
@@ -99,6 +78,51 @@ def _make_latest_rev_active(context, q):
     else:
         context['latest_revision_date'] = latest_rev.revision_timestamp
         context['latest_revision'] = latest_rev.revision_id
+
+def _update_package_relationship(relationship, comment, context):
+    model = context['model']
+    api = context.get('api_version') or '1'
+    ref_package_by = 'id' if api == '2' else 'name'
+    is_changed = relationship.comment != comment
+    if is_changed:
+        rev = model.repo.new_revision()
+        rev.author = context["user"]
+        rev.message = (_(u'REST API: Update package relationship: %s %s %s') % 
+            (relationship.subject, relationship.type, relationship.object))
+        relationship.comment = comment
+        model.repo.commit_and_remove()
+    rel_dict = relationship.as_dict(package=relationship.subject,
+                                    ref_package_by=ref_package_by)
+    return rel_dict
+
+def check_group_auth(data_dict, context):
+    model = context['model']
+    pkg = context.get("package")
+
+    ## hack as api does not allow groups
+    if context.get("allow_partial_update"):
+        return
+    
+    group_dicts = data_dict.get("groups", [])
+    groups = set()
+    for group_dict in group_dicts:
+        id = group_dict.get('id')
+        if not id:
+            continue
+        grp = model.Group.get(id)
+        if grp is None:
+            raise NotFound(_('Group was not found.'))
+        groups.add(grp)
+
+    if pkg:
+        groups = groups - set(pkg.groups)
+
+    for group in groups:
+        check_access(group, model.Action.EDIT, context)
+
+#
+# Logic functions
+#
 
 def make_latest_pending_package_active(context):
 
@@ -185,22 +209,6 @@ def package_update(data_dict, context):
         return package_dictize(pkg, context)
     return data
 
-
-def _update_package_relationship(relationship, comment, context):
-    model = context['model']
-    api = context.get('api_version') or '1'
-    ref_package_by = 'id' if api == '2' else 'name'
-    is_changed = relationship.comment != comment
-    if is_changed:
-        rev = model.repo.new_revision()
-        rev.author = context["user"]
-        rev.message = (_(u'REST API: Update package relationship: %s %s %s') % 
-            (relationship.subject, relationship.type, relationship.object))
-        relationship.comment = comment
-        model.repo.commit_and_remove()
-    rel_dict = relationship.as_dict(package=relationship.subject,
-                                    ref_package_by=ref_package_by)
-    return rel_dict
 
 def package_relationship_update(data_dict, context):
 
