@@ -100,38 +100,6 @@ authorization_override_table = Table(
            Column('role', UnicodeText)
            )
 
-user_group_table = Table(
-           'user_group', metadata,
-           Column('id', UnicodeText, primary_key=True, default=make_uuid),
-           Column('name', UnicodeText, nullable=False),
-           Column('parent_id', UnicodeText, nullable=True),
-)
-
-user_group_extra_table = Table(
-           'user_group_extra', metadata,
-           Column('id', UnicodeText, primary_key=True, default=make_uuid),
-           Column('user_group_id', UnicodeText, ForeignKey('user_group.id'), nullable=False),
-           Column('key', UnicodeText, nullable=False),
-           Column('value', UnicodeText, nullable=False),
-)
-
-user_group_user_table = Table(
-           'user_group_user', metadata,
-           Column('id', UnicodeText, primary_key=True, default=make_uuid),
-           Column('user_group_id', UnicodeText, ForeignKey('user_group.id'), nullable=False),
-           Column('user_id', UnicodeText, ForeignKey('user.id'), nullable=False),
-           Column('capacity', UnicodeText),
-)
-
-user_group_package_table = Table(
-           'user_group_package', metadata,
-           Column('id', UnicodeText, primary_key=True, default=make_uuid),
-           Column('user_group_id', UnicodeText, ForeignKey('user_group.id'), nullable=False),
-           Column('package_id', UnicodeText, ForeignKey('package.id'), nullable=False),
-           Column('capacity', UnicodeText),
-)
-
-
 
 class RoleAction(DomainObject):
     def __repr__(self):

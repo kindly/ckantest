@@ -14,10 +14,19 @@ __all__ = ['group_table', 'Group', 'package_revision_table',
            'PackageGroup', 'GroupRevision', 'PackageGroupRevision',
            'package_group_revision_table']
 
+user_group_table = Table('member', metadata,
+    Column('id', UnicodeText, primary_key=True, default=make_uuid),
+    Column('user_id', UnicodeText, ForeignKey('user.id')),
+    Column('group_id', UnicodeText, ForeignKey('group.id')),
+    Column('capacity', UnicodeText),
+    )
+
 package_group_table = Table('package_group', metadata,
     Column('id', UnicodeText, primary_key=True, default=make_uuid),
     Column('package_id', UnicodeText, ForeignKey('package.id')),
     Column('group_id', UnicodeText, ForeignKey('group.id')),
+    Column('capacity', UnicodeText),
+    Column('type', UnicodeText),
     )
     
 vdm.sqlalchemy.make_table_stateful(package_group_table)
@@ -29,6 +38,7 @@ group_table = Table('group', metadata,
     Column('title', UnicodeText),
     Column('description', UnicodeText),
     Column('created', DateTime, default=datetime.now),
+    Column('parent_id', UnicodeText),
     )
 
 vdm.sqlalchemy.make_table_stateful(group_table)
