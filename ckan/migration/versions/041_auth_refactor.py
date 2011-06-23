@@ -14,6 +14,9 @@ def upgrade(migrate_engine):
 --DROP TABLE system_role;
 BEGIN;
 
+alter table "user" add column sysadmin bool;
+update "user" set sysadmin = (select true from user_object_role where context = 'System' and role = 'admin' and user_object_role.user_id = "user".id);
+
 alter table group_role drop constraint group_role_group_id_fkey;
 alter table package_role drop constraint package_role_package_id_fkey;
 alter table user_object_role drop constraint  user_object_role_authorized_group_id_fkey;

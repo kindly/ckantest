@@ -19,6 +19,7 @@ user_table = Table('user', metadata,
         Column('apikey', UnicodeText, default=make_uuid),
         Column('created', DateTime, default=datetime.now),
         Column('about', UnicodeText),
+        Column('sysadmin', Boolean),
         )
 
 class User(DomainObject):
