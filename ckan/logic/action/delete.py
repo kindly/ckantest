@@ -4,6 +4,12 @@ import ckan.authz
 from ckan.plugins import PluginImplementations, IGroupController, IPackageController
 
 
+def revision_undelete(context, data_dict):
+    raise Exception('David Raznick to implement')
+
+def revision_delete(context, data_dict):
+    raise Exception('David Raznick to implement')
+
 def package_delete(context):
 
     model = context['model']

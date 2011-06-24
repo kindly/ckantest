@@ -13,7 +13,15 @@ class TagController(BaseController):
 
     def __before__(self, action, **env):
         BaseController.__before__(self, action, **env)
-        if not self.authorizer.am_authorized(c, model.Action.SITE_READ, model.System):
+        check = check_access(
+            dict(
+                model=model, 
+                user=c.user,
+            ),
+            'site_read',
+            {},
+        )      
+        if not check.success:
             abort(401, _('Not authorized to see this page'))
 
     def index(self):

@@ -15,6 +15,7 @@ from ckan.lib.dictization.model_dictize import (package_to_api1,
 
 
 def revision_list(context, data_dict=None):
+    check_access(context, "revision_list", data_dict)
     model = context["model"]
     if data_dict is None:
         # XXX Refactor calling function
@@ -92,6 +93,14 @@ def current_package_list_with_resources(context):
         package_list.append(result_dict)
     return package_list
 
+def search(context, data_dict):
+    raise Exception('David Raznick to implement')
+
+def revision_diff(context, data_dict):
+    raise Exception('David Raznick to implement')
+
+def group_revision_list(context, data_dict):
+    raise Exception('David Raznick to implement')
 
 def package_revision_list(context):
     model = context["model"]
@@ -211,7 +220,7 @@ def package_show(context):
     return package_dict
 
 
-def revision_show(context):
+def revision_show(context, data_dict):
     model = context['model']
     api = context.get('api_version') or '1'
     id = context['id']

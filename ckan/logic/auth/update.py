@@ -1,8 +1,10 @@
+from pylons.i18n import _
+
 def make_latest_pending_package_active(context, data_dict):
     return {'success': False, 'msg': 'Not implemented yet in the auth refactor'}
 
 def package_update(context, data_dict):
-    return {'success': False, 'msg': 'Not implemented yet in the auth refactor'}
+    return {'success': False, 'msg': _('User %r not authorized to edit %s') % (contect['user'], data_dict['id'])}
 
 def package_relationship_update(context, data_dict):
     return {'success': False, 'msg': 'Not implemented yet in the auth refactor'}

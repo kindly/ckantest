@@ -33,6 +33,8 @@ import ckan.authz
 import ckan.rating
 import ckan.misc
 
+from ckan.logic import check_access
+
 log = logging.getLogger('ckan.controllers')
 
 def search_url(params):
@@ -87,8 +89,14 @@ class PackageController(BaseController):
         ## This is messy as auths take domain object not data_dict
         pkg = context.get('package') or c.pkg
         if pkg:
-            c.auth_for_change_state = Authorizer().am_authorized(
-                c, model.Action.CHANGE_STATE, pkg)
+            check = check_access(
+                context,
+                'package_delete',
+                dict(
+                    id=pkg.id,
+                ),
+            )
+            c.auth_for_change_state = check.success
 
     ## end hooks
 
@@ -96,8 +104,6 @@ class PackageController(BaseController):
     extensions = PluginImplementations(IPackageController)
 
     def search(self):        
-        if not self.authorizer.am_authorized(c, model.Action.SITE_READ, model.System):
-            abort(401, _('Not authorized to see this page'))
         q = c.q = request.params.get('q') # unicode format (decoded from utf8)
         c.open_only = request.params.get('open_only')
         c.downloadable_only = request.params.get('downloadable_only')
@@ -111,7 +117,26 @@ class PackageController(BaseController):
 
         # most search operations should reset the page counter:
         params_nopage = [(k, v) for k,v in request.params.items() if k != 'page']
-        
+        check = check_access(
+            dict(
+                model=model, 
+                user=c.user,
+            ),
+            'search',
+            dict(
+                q=q,
+                open_only=c.open_only,
+                downloadable_only=c.downloadable_only,
+                page=page,
+                limit=limit,
+                # @@@ We should also add the other params but how to get
+                #     get them out isn't immediately clear
+            ),
+        )      
+        if not check.success:
+            abort(401, check['msg'])
+
+
         def drill_down_url(**by):
             params = list(params_nopage)
             params.extend(by.items())
@@ -216,7 +241,13 @@ class PackageController(BaseController):
                 break
 
         PackageSaver().render_package(c.pkg_dict, context)
-        return render('package/read.html')
+        return render(
+            'package/read.html', 
+            extra_vars=dict(
+                context=context, 
+                check_access=check_access,
+            ) 
+        )
 
     def comments(self, id):
         context = {'model': model, 'session': model.Session,
@@ -352,9 +383,9 @@ class PackageController(BaseController):
 
         c.pkg = context.get("package")
 
-        am_authz = self.authorizer.am_authorized(c, model.Action.EDIT, c.pkg)
-        if not am_authz:
-            abort(401, _('User %r not authorized to edit %s') % (c.user, id))
+        check = check_access(context, 'package_edit', {'id': id})
+        if not check.success:
+            abort(401, check.msg)
 
         errors = errors or {}
         vars = {'data': data, 'errors': errors, 'error_summary': error_summary}

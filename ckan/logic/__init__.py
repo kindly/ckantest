@@ -4,6 +4,18 @@ import ckan.new_authz as new_authz
 
 from ckan.lib.navl.dictization_functions import flatten_dict
 
+class AttributeDict(dict):
+    def __getattr__(self, name):
+        try:
+            return self[name]
+        except KeyError:
+            raise AttributeError('No such attribute %r'%name)
+
+    def __setattr__(self, name, value):
+        raise AttributeError(
+            'You cannot set attributes of this object directly'
+        )
+
 class ActionError(Exception):
     def __init__(self, extra_msg=None):
         self.extra_msg = extra_msg
@@ -87,10 +99,10 @@ def check_access(context, action=None, data_dict=None, object_id=None, object_ty
         logic_authorization = new_authz.is_authorized(context, action, data_dict, object_id, object_type)
         if not logic_authorization['success']:
             if not new_authz.check_overridden(context, action, object_id, object_type):
-                raise NotAuthorized(logic_authorization['msg'])
+                return AttributeDict(logic_authorization)
     elif not user:
         log.debug("No valid API key provided.")
-        raise NotAuthorized()
+        return AttributeDict(success=False, msg="No valid API key provided.")
     log.debug("Access OK.")
-    return True
+    return AttributeDict(success=True)
 

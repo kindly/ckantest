@@ -8,20 +8,13 @@ from ckan.lib.helpers import Page
 import ckan.authz
 from ckan.lib.cache import proxy_cache, get_cache_expires
 from ckan.logic.action.get import revision_list
+from ckan.logic import NotAuthorized
+from ckan.logic import check_access
+
 
 cache_expires = get_cache_expires(sys.modules[__name__])
 
 class RevisionController(BaseController):
-
-    #def __before__(self, action, **env):
-    #    BaseController.__before__(self, action, **env)
-    #    c.revision_change_state_allowed = (
-    #        c.user and
-    #        self.authorizer.is_authorized(c.user, model.Action.CHANGE_STATE,
-    #            model.Revision)
-    #        )
-    #    if not self.authorizer.am_authorized(c, model.Action.SITE_READ, model.System):
-    #        abort(401, _('Not authorized to see this page'))
 
     def index(self):
         return self.list()
@@ -51,7 +44,10 @@ class RevisionController(BaseController):
             data_dict['since_when'] = datetime.now() + ourtimedelta
         # Get the revision list (will fail if you don't have the correct permission)
         # XXX This should return data, not a query
-        revision_records = revision_list(context, data_dict)
+        try:
+            revision_records = revision_list(context, data_dict)
+        except NotAuthorized:
+            abort(401, _('Not authorized to see this page'))
         # If we have the query, we are allowed to make a change
         # XXX This line should be deprecated, you won't get here otherwise
         c.revision_change_state_allowed = True
@@ -132,8 +128,14 @@ class RevisionController(BaseController):
             return render('revision/list.html')
 
     def read(self, id=None):
+        context = {}
+        context['model'] = model
+        context['user'] = c.user
         if id is None:
             abort(404)
+        check = check_access(context, "revision_show", {})
+        if not check.success:
+            abort(401, _('Not authorized to see this page'))
         c.revision = model.Session.query(model.Revision).get(id)
         if c.revision is None:
             abort(404)
@@ -147,6 +149,13 @@ class RevisionController(BaseController):
         return render('revision/read.html')
 
     def diff(self, id=None):
+        context = {}
+        context['model'] = model
+        context['user'] = c.user
+        check = check_access(context, "revision_diff", {})
+        if not check.success:
+            abort(401, _('Not authorized to see this page'))
+
         if 'diff' not in request.params or 'oldid' not in request.params:
             abort(400)
         c.revision_from = model.Session.query(model.Revision).get(
@@ -169,6 +178,20 @@ class RevisionController(BaseController):
         return render('revision/diff.html')
 
     def edit(self, id=None):
+        context = {}
+        context['model'] = model
+        context['user'] = c.user
+        if action=='delete':
+            check = check_access(context, "revision_delete", {})
+            if not check.success:
+                abort(401, _(check['msg']))
+        elif action=='undelete':
+            check = check_access(context, "revision_undelete", {})
+            if not check.success:
+                abort(401, _(check['msg']))
+        else:
+            abort(404)
+
         if id is None:
             abort(404)
         revision = model.Session.query(model.Revision).get(id)

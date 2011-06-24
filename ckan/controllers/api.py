@@ -36,7 +36,15 @@ class ApiController(BaseController):
 
     def __call__(self, environ, start_response):
         self._identify_user()
-        if not self.authorizer.am_authorized(c, model.Action.SITE_READ, model.System):
+        check = check_access(
+            dict(
+                model=model, 
+                user=c.user,
+            ),
+            'site_read',
+            {},
+        )      
+        if not check.success:
             response_msg = self._finish(403, _('Not authorized to see this page'))
             # Call start_response manually instead of the parent __call__
             # because we want to end the request instead of continuing.
