@@ -1,7 +1,8 @@
 import re
 from pylons.i18n import _, ungettext, N_, gettext
 from ckan.lib.navl.dictization_functions import Invalid, missing, unflatten
-from ckan.authz import Authorizer
+#from ckan.authz import Authorizer
+from ckan.logic.auth.helper import is_admin
 
 def package_id_not_changed(value, context):
 
@@ -153,8 +154,8 @@ def tag_string_convert(key, data, errors, context):
         tag_length_validator(tag, context)
         tag_name_validator(tag, context)
 
-def ignore_not_admin(key, data, errors, context):
-
+def ignore_no_package_delete_right(key, data, errors, context):
+    
     model = context['model']
     user = context.get('user')
 
@@ -162,8 +163,9 @@ def ignore_not_admin(key, data, errors, context):
         return
 
     pkg = context.get('package')
-    if (user and pkg and 
-        Authorizer().is_authorized(user, model.Action.CHANGE_STATE, pkg)):
+    
+    if check_access(context, 'package_delete', {'id': context['id']}):
+
         return
 
     data.pop(key)

@@ -179,9 +179,6 @@ def package_update(data_dict, context):
     if pkg is None:
         raise NotFound(_('Package was not found.'))
 
-    import ckan.new_authz as new_authz
-    new_authz.is_authorized(context, 'edit', data_dict, id, 'package')
-
     check_access(context, 'edit', data_dict, id, 'package')
 
     data, errors = validate(data_dict, schema, context)

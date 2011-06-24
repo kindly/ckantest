@@ -144,6 +144,8 @@ def facet_title(name):
     return config.get('search.facets.%s.title' % name, name.capitalize())
 
 def am_authorized(c, action, domain_object=None):
+    # XXX This needs refactoring everywhere else
+    return True
     from ckan.authz import Authorizer
     if domain_object is None:
         from ckan import model

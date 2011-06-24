@@ -58,16 +58,16 @@ def make_app(global_conf, full_stack=True, static_files=True, **app_conf):
     # CUSTOM MIDDLEWARE HERE (filtered by error handling middlewares)
     #app = QueueLogMiddleware(app)
     
-    if asbool(full_stack):
-        # Handle Python exceptions
-        app = ErrorHandler(app, global_conf, **config['pylons.errorware'])
+    #if asbool(full_stack):
+    #    # Handle Python exceptions
+    #    app = ErrorHandler(app, global_conf, **config['pylons.errorware'])
 
-        # Display error documents for 401, 403, 404 status codes (and
-        # 500 when debug is disabled)
-        if asbool(config['debug']):
-            app = StatusCodeRedirect(app, [400, 404])
-        else:
-            app = StatusCodeRedirect(app, [400, 404, 500])
+    #    # Display error documents for 401, 403, 404 status codes (and
+    #    # 500 when debug is disabled)
+    #    if asbool(config['debug']):
+    #        app = StatusCodeRedirect(app, [400, 404])
+    #    else:
+    #        app = StatusCodeRedirect(app, [400, 404, 500])
     
     # Initialize repoze.who
     who_parser = WhoConfig(global_conf['here'])

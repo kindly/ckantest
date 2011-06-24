@@ -5,7 +5,7 @@ from ckan.plugins import (PluginImplementations,
                           IPackageController)
 import ckan.authz
 
-from ckan.lib.dictization import table_dictize
+from ckan.lib.dictization import table_dictize, dictize
 from ckan.lib.dictization.model_dictize import group_to_api1, group_to_api2
 from ckan.lib.dictization.model_dictize import (package_to_api1,
                                                 package_to_api2,
@@ -13,6 +13,46 @@ from ckan.lib.dictization.model_dictize import (package_to_api1,
                                                 resource_list_dictize,
                                                 group_dictize)
 
+
+def revision_list(context, data_dict=None):
+    model = context["model"]
+    if data_dict is None:
+        # XXX Refactor calling function
+        raise Exception('JG Please use the new revision_list() function')
+        revs = model.Session.query(model.Revision).all()
+        return [rev.id for rev in revs]
+    query = model.Session.query(model.Revision)
+    if data_dict['format'] == 'atom':
+         query = query.filter_by(model.State.ACTIVE)
+         query = query.filter(
+                 model.Revision.timestamp>=since_when).filter(
+                 model.Revision.id!=None)
+         query = query.limit(maxresults)
+         return query.all()
+    else:
+         query.offset(20*data_dict['page']).limit(20)
+    # Return plain dictionaries as all logic layer functions should
+    return query
+    #results = [dictize(context, i) for i in query.all()]
+
+
+    #    <py:if test="revision.has_key('package_id')">
+    #      <a href="${h.url_for(controller='package', action='read', id=revsion.package_name)}">${revsion.package_name}</a>
+    #    </py:if>
+    #    <py:if test="revision.has_key('group_id')">
+    #      <a href="${h.url_for(controller='group', action='read', id=revision.group_name)}">${revision.group_name}</a>
+    #    </py:if>
+
+    ## Now add data for any groups or packages in the revision
+    #for result in results:
+    #    # XXX this misses off changes to things that aren't the key entities
+    #    package_records = model.Session.query(model.PackageRevision).filter_by(revision_id=result['id']).all()
+    #    if package_records:
+    #        result['package_name'] = pacakge_records[0].name
+    #    group_records = model.Session.query(model.GroupRevision).filter_by(revision_id=result['id']).all()
+    #    if group_records:
+    #        result['group_name'] = group_records[0].name
+    #return results
 
 def package_list(context):
     model = context["model"]
@@ -52,11 +92,6 @@ def current_package_list_with_resources(context):
         package_list.append(result_dict)
     return package_list
 
-def revision_list(context):
-
-    model = context["model"]
-    revs = model.Session.query(model.Revision).all()
-    return [rev.id for rev in revs]
 
 def package_revision_list(context):
     model = context["model"]
