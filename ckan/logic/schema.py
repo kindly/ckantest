@@ -18,7 +18,7 @@ from ckan.logic.validators import (package_id_not_changed,
                                    tag_name_validator,
                                    tag_string_convert,
                                    duplicate_extras_key,
-                                   ignore_not_admin,
+                                   ignore_no_package_delete_right,
                                    no_http,
                                    tag_not_uppercase)
 from formencode.validators import OneOf
@@ -72,7 +72,7 @@ def default_package_schema():
         'notes': [ignore_missing, unicode],
         'url': [ignore_missing, unicode],#, URL(add_http=False)],
         'version': [ignore_missing, unicode],
-        'state': [ignore_not_admin, ignore_missing],
+        'state': [ignore_no_package_delete_right, ignore_missing],
         '__extras': [ignore],
         '__junk': [empty],
         'resources': default_resource_schema(),

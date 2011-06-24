@@ -8,6 +8,22 @@ from pylons import config
 # and saving dictized objects. If a specialised use is needed please do NOT extend
 # these functions.  Copy code from here as needed.
 
+def dictize(context, obj):
+    '''\
+    Get any model object and represent it as a dict
+    '''
+    result_dict = {}
+    model = context["model"]
+    session = model.Session
+    if isinstance(obj, sqlalchemy.engine.base.RowProxy):
+        fields = obj.keys()
+    else:
+        ModelClass = obj.__class__
+        table = class_mapper(ModelClass).mapped_table
+        fields = [field.name for field in table.c]
+    for name in fields:
+        result_dict[name] = getattr(obj, name)
+    return result_dict
 
 def table_dictize(obj, context):
     '''Get any model object and represent it as a dict'''

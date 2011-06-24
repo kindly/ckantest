@@ -7,26 +7,55 @@ from ckan.lib.base import *
 from ckan.lib.helpers import Page
 import ckan.authz
 from ckan.lib.cache import proxy_cache, get_cache_expires
+from ckan.logic.action.get import revision_list
+
 cache_expires = get_cache_expires(sys.modules[__name__])
 
 class RevisionController(BaseController):
 
-    def __before__(self, action, **env):
-        BaseController.__before__(self, action, **env)
-        c.revision_change_state_allowed = (
-            c.user and
-            self.authorizer.is_authorized(c.user, model.Action.CHANGE_STATE,
-                model.Revision)
-            )
-        if not self.authorizer.am_authorized(c, model.Action.SITE_READ, model.System):
-            abort(401, _('Not authorized to see this page'))
+    #def __before__(self, action, **env):
+    #    BaseController.__before__(self, action, **env)
+    #    c.revision_change_state_allowed = (
+    #        c.user and
+    #        self.authorizer.is_authorized(c.user, model.Action.CHANGE_STATE,
+    #            model.Revision)
+    #        )
+    #    if not self.authorizer.am_authorized(c, model.Action.SITE_READ, model.System):
+    #        abort(401, _('Not authorized to see this page'))
 
     def index(self):
         return self.list()
 
     def list(self):
-        format = request.params.get('format', '')
-        if format == 'atom':
+        # Build context
+        context = {}
+        context['model'] = model
+        context['user'] = c.user
+        # Buld data_dict
+        try:
+            dayHorizon = int(request.params.get('days', 5))
+        except ValueError, TypeError:
+            dayHorizon = 5
+        try:
+            page = request.params.get('page', 1),
+        except ValueError, TypeError:
+            page = 1
+        data_dict = dict(
+            format = request.params.get('format', ''),
+            dayHorizon = dayHorizon,
+            page = page,
+        )
+        if data_dict['format'] == 'atom':
+            data_dict['maxresults'] = 200
+            data_dict['ourtimedelta'] = timedelta(days=-dayHorizon)
+            data_dict['since_when'] = datetime.now() + ourtimedelta
+        # Get the revision list (will fail if you don't have the correct permission)
+        # XXX This should return data, not a query
+        revision_records = revision_list(context, data_dict)
+        # If we have the query, we are allowed to make a change
+        # XXX This line should be deprecated, you won't get here otherwise
+        c.revision_change_state_allowed = True
+        if data_dict['format'] == 'atom':
             # Generate and return Atom 1.0 document.
             from webhelpers.feedgenerator import Atom1Feed
             feed = Atom1Feed(
@@ -35,21 +64,11 @@ class RevisionController(BaseController):
                 description=_(u'Recent changes to the CKAN repository.'),
                 language=unicode(get_lang()),
             )
-            # TODO: make this configurable?
-            # we do not want the system to fall over!
-            maxresults = 200
-            try:
-                dayHorizon = int(request.params.get('days', 5))
-            except:
-                dayHorizon = 5
-            ourtimedelta = timedelta(days=-dayHorizon)
-            since_when = datetime.now() + ourtimedelta
-            revision_query = model.repo.history()
-            revision_query = revision_query.filter(
-                    model.Revision.timestamp>=since_when).filter(
-                    model.Revision.id!=None)
-            revision_query = revision_query.limit(maxresults)
-            for revision in revision_query:
+            # David Raznick to refactor to work more quickly and with less 
+            # code and move into the logic layer. The only but that should
+            # be here is the code that changes the data from the logic layer
+            # into the atom feed.
+            for revision in revision_records:
                 package_indications = []
                 revision_changes = model.repo.list_changes(revision)
                 resource_revisions = revision_changes[model.Resource]
@@ -105,10 +124,9 @@ class RevisionController(BaseController):
             feed.content_type = 'application/atom+xml'
             return feed.writeString('utf-8')
         else:
-            query = model.Session.query(model.Revision)
             c.page = Page(
-                collection=query,
-                page=request.params.get('page', 1),
+                collection=revision_records,
+                page=data_dict['page'],
                 items_per_page=20
             )
             return render('revision/list.html')

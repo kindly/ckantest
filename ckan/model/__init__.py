@@ -85,7 +85,7 @@ class Repository(vdm.sqlalchemy.Repository):
         the database. If they are already there, this method does nothing.'''
         for username in (PSEUDO_USER__LOGGED_IN,
                          PSEUDO_USER__VISITOR):
-            if not User.by_name(username):
+            if not self.session.query(User.id).filter_by(name=username).first():
                 user = User(name=username)
                 Session.add(user)
         Session.flush() # so that these objects can be used
@@ -167,6 +167,8 @@ class Repository(vdm.sqlalchemy.Repository):
             'Database migration - only Postgresql engine supported (not %s).' %\
             meta.engine.name
         import migrate.versioning.api as mig
+        version = mig.version(self.migrate_repository)
+	print version
         self.setup_migration_version_control()
         mig.upgrade(self.metadata.bind, self.migrate_repository, version=version)
         self.init_const_data()
