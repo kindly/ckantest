@@ -56,7 +56,6 @@ def _get_auth_function(action):
     if _auth_functions:
         return _auth_functions.get(action)
     # Otherwise look in all the plugins to resolve all possible
-    global _auth_functions
     # First get the default ones in the ckan/logic/auth directory
     # Rather than writing them out in full will use __import__
     # to load anything from ckan.auth that looks like it might

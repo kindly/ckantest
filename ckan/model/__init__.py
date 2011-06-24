@@ -95,7 +95,7 @@ class Repository(vdm.sqlalchemy.Repository):
     def init_configuration_data(self):
         '''Default configuration, for when CKAN is first used out of the box.
         This state may be subsequently configured by the user.'''
-        init_authz_configuration_data()
+        #init_authz_configuration_data()
         if Session.query(Revision).count() == 0:
             rev = Revision()
             rev.author = 'system'
@@ -109,7 +109,6 @@ class Repository(vdm.sqlalchemy.Repository):
         has shortcuts.
         '''
         self.metadata.create_all(bind=self.metadata.bind)    
-        return
         self.init_const_data()
         self.init_configuration_data()
 

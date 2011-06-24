@@ -401,36 +401,38 @@ left arrow <
         model.setup_default_user_roles(roger, [russianfan])
         model.add_user_to_role(visitor, model.Role.ADMIN, roger)
         testsysadmin = model.User.by_name(u'testsysadmin')
-        model.add_user_to_role(testsysadmin, model.Role.ADMIN, model.System())
+        testsysadmin.sysadmin = True
+        model.Session.add(testsysadmin)
+        #model.add_user_to_role(testsysadmin, model.Role.ADMIN, model.System())
 
         model.repo.commit_and_remove()
 
-        if commit_changesets:
-            from ckan.model.changeset import ChangesetRegister
-            changeset_ids = ChangesetRegister().commit()
+#        if commit_changesets:
+#            from ckan.model.changeset import ChangesetRegister
+#            changeset_ids = ChangesetRegister().commit()
 
         # Create a couple of authorization groups
-        for ag_name in [u'anauthzgroup', u'anotherauthzgroup']:
-            ag=model.AuthorizationGroup.by_name(ag_name) 
-            if not ag: #may already exist, if not create
-                ag=model.AuthorizationGroup(name=ag_name)
-                model.Session.add(ag)
+        #for ag_name in [u'anauthzgroup', u'anotherauthzgroup']:
+        #    ag=model.AuthorizationGroup.by_name(ag_name) 
+        #    if not ag: #may already exist, if not create
+        #        ag=model.AuthorizationGroup(name=ag_name)
+        #        model.Session.add(ag)
 
-        model.repo.commit_and_remove()
+        #model.repo.commit_and_remove()
 
         # and give them a range of roles on various things
-        ag = model.AuthorizationGroup.by_name(u'anauthzgroup')
-        aag = model.AuthorizationGroup.by_name(u'anotherauthzgroup')
-        pkg = model.Package.by_name(u'warandpeace')
-        g = model.Group.by_name('david')
+        #ag = model.AuthorizationGroup.by_name(u'anauthzgroup')
+        #aag = model.AuthorizationGroup.by_name(u'anotherauthzgroup')
+        #pkg = model.Package.by_name(u'warandpeace')
+        #g = model.Group.by_name('david')
+#
+#        model.add_authorization_group_to_role(ag, u'editor', model.System())
+#        model.add_authorization_group_to_role(ag, u'reader', pkg)
+#        model.add_authorization_group_to_role(ag, u'admin', aag)
+#        model.add_authorization_group_to_role(aag, u'editor', ag)
+#        model.add_authorization_group_to_role(ag, u'editor', g)
 
-        model.add_authorization_group_to_role(ag, u'editor', model.System())
-        model.add_authorization_group_to_role(ag, u'reader', pkg)
-        model.add_authorization_group_to_role(ag, u'admin', aag)
-        model.add_authorization_group_to_role(aag, u'editor', ag)
-        model.add_authorization_group_to_role(ag, u'editor', g)
-
-        model.repo.commit_and_remove()
+#        model.repo.commit_and_remove()
 
 
 

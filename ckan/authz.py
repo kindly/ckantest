@@ -157,11 +157,7 @@ class Authorizer(object):
         return True
 
         user = model.User.by_name(username, autoflush=False)
-        if user:
-            q = model.Session.query(model.SystemRole)
-            q = q.autoflush(False)
-            q = q.filter_by(role=model.Role.ADMIN, user=user)
-            return q.count() > 0
+        return user.sysadmin
 
     @classmethod
     def get_admins(cls, domain_obj):

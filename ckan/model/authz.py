@@ -8,7 +8,6 @@ from package import *
 from group import Group
 from types import make_uuid
 from user import User
-from core import System
 #from authorization_group import AuthorizationGroup, authorization_group_table
 
 PSEUDO_USER__LOGGED_IN = u'logged_in'
@@ -122,19 +121,8 @@ class AuthorizationOverride(DomainObject):
             return '<%s group="%s" role="%s" context="%s">' % \
                 (self.__class__.__name__, self.authorized_group.name, self.role, self.context)
         else:
-            assert False, "UserObjectRole is neither for an authzgroup or for a user" 
+            assert False, "AuthorizationOverride is neither for an authzgroup or for a user" 
             
-
-
-    @classmethod
-    def get_object_role_class(cls, domain_obj):
-        protected_object = protected_objects.get(domain_obj.__class__, None)
-        if protected_object is None:
-            # TODO: make into an authz exception
-            msg = '%s is not a protected object, i.e. a subject of authorization' % domain_obj
-            raise Exception(msg)
-        else:
-            return protected_object
 
     @classmethod
     def user_has_role(cls, user, role, domain_obj):
@@ -143,31 +131,14 @@ class AuthorizationOverride(DomainObject):
         return q.count() == 1
         
     @classmethod
-    def authorization_group_has_role(cls, authorized_group, role, domain_obj):
-        assert isinstance(authorized_group, AuthorizationGroup), authorized_group
-        q = cls._authorized_group_query(authorized_group, role, domain_obj)
-        return q.count() == 1
-        
-    @classmethod
     def _user_query(cls, user, role, domain_obj):
-        q = Session.query(cls).filter_by(role=role)
+        q = Session.query(cls).filter_by(
+            role=role,
+            object_id=domain_obj.id,
+            user_id=user.id)
         # some protected objects are not "contextual"
-        if cls.name is not None:
-            # e.g. filter_by(package=domain_obj)
-            q = q.filter_by(**dict({cls.name: domain_obj}))
-        q = q.filter_by(user=user)
         return q
     
-    @classmethod
-    def _authorized_group_query(cls, authorized_group, role, domain_obj):
-        q = Session.query(cls).filter_by(role=role)
-        # some protected objects are not "contextual"
-        if cls.name is not None:
-            # e.g. filter_by(package=domain_obj)
-            q = q.filter_by(**dict({cls.name: domain_obj}))
-        q = q.filter_by(authorized_group=authorized_group)
-        return q
-
     @classmethod
     def add_user_to_role(cls, user, role, domain_obj):
         '''NB: Leaves the caller to commit the change. If called twice without a
@@ -180,24 +151,8 @@ class AuthorizationOverride(DomainObject):
         # that won't work if the transaction hasn't been committed yet, which allows a role to be added twice (you can do this from the interface)
         if cls.user_has_role(user, role, domain_obj):
             return
-        objectrole = cls(role=role, user=user)
-        if cls.name is not None:
-            setattr(objectrole, cls.name, domain_obj)
-        Session.add(objectrole)
-         
-    @classmethod
-    def add_authorization_group_to_role(cls, authorization_group, role, domain_obj):
-        '''NB: Leaves the caller to commit the change. If called twice without a
-        commit, will add the role to the database twice. Since some other
-        functions count the number of occurrences, that leaves a fairly obvious
-        bug. But adding a commit here seems to break various tests.
-        So don't call this twice without committing, I guess...
-        '''
-        if cls.authorization_group_has_role(authorization_group, role, domain_obj):
-            return
-        objectrole = cls(role=role, authorized_group=authorization_group)
-        if cls.name is not None:
-            setattr(objectrole, cls.name, domain_obj)
+        objectrole = cls(role=role, user=user, object_id=domain_obj.id, 
+                         object_type=domain_obj.__class__.__name__.lower())
         Session.add(objectrole)
 
     @classmethod
@@ -208,50 +163,28 @@ class AuthorizationOverride(DomainObject):
         Session.commit()
         Session.remove()
 
-    @classmethod
-    def remove_authorization_group_from_role(cls, authorization_group, role, domain_obj):
-        q = cls._authorized_group_query(authorization_group, role, domain_obj)
-        for ago_role in q.all():
-            Session.delete(ago_role)
-        Session.commit()
-        Session.remove()
-
-
-
-
 ## ======================================
 ## Helpers
 
 
 def user_has_role(user, role, domain_obj):
-    objectrole = UserObjectRole.get_object_role_class(domain_obj)
-    return objectrole.user_has_role(user, role, domain_obj)
+    return AuthorizationOverride.user_has_role(user, role, domain_obj)
 
 def add_user_to_role(user, role, domain_obj):
-    objectrole = UserObjectRole.get_object_role_class(domain_obj)
-    objectrole.add_user_to_role(user, role, domain_obj)
+    AuthorizationOverride.add_user_to_role(user, role, domain_obj)
 
 def remove_user_from_role(user, role, domain_obj):
-    objectrole = UserObjectRole.get_object_role_class(domain_obj)
-    objectrole.remove_user_from_role(user, role, domain_obj)
+    AuthorizationOverride.remove_user_from_role(user, role, domain_obj)
 
     
 def authorization_group_has_role(authorization_group, role, domain_obj):
-    objectrole = UserObjectRole.get_object_role_class(domain_obj)
-    return objectrole.authorization_group_has_role(authorization_group, role, domain_obj)
+    return AuthorizationOverride.authorization_group_has_role(authorization_group, role, domain_obj)
         
 def add_authorization_group_to_role(authorization_group, role, domain_obj):
-    objectrole = UserObjectRole.get_object_role_class(domain_obj)
-    objectrole.add_authorization_group_to_role(authorization_group, role, domain_obj)
+    AuthorizationOverride.add_authorization_group_to_role(authorization_group, role, domain_obj)
 
 def remove_authorization_group_from_role(authorization_group, role, domain_obj):
-    objectrole = UserObjectRole.get_object_role_class(domain_obj)
-    objectrole.remove_authorization_group_from_role(authorization_group, role, domain_obj)
-    
-def init_authz_configuration_data():
-    setup_default_user_roles(System())
-    Session.commit()
-    Session.remove()
+    AuthorizationOverride.remove_authorization_group_from_role(authorization_group, role, domain_obj)
     
 def init_authz_const_data():
     '''Setup all default role-actions.
@@ -324,7 +257,6 @@ default_default_user_roles = {
     'Package': {"visitor": ["editor"], "logged_in": ["editor"]},
     'Group': {"visitor": ["reader"], "logged_in": ["reader"]},
     'System': {"visitor": ["anon_editor"], "logged_in": ["editor"]},
-    'AuthorizationGroup': {"visitor": ["reader"], "logged_in": ["reader"]},
     }
 
 global _default_user_roles_cache
@@ -360,7 +292,7 @@ def setup_default_user_roles(domain_object, admins=[]):
     @param admins - a list of User objects
     NB: leaves caller to commit change.
     '''
-    assert isinstance(domain_object, (Package, Group, System, AuthorizationGroup)), domain_object
+    assert isinstance(domain_object, (Package, Group)), domain_object
     assert isinstance(admins, list)
     user_roles_ = get_default_user_roles(domain_object)
     setup_user_roles(domain_object,
@@ -393,6 +325,11 @@ mapper(AuthorizationOverride, authorization_override_table,
                 cascade='all, delete, delete-orphan'
             )
         ),
+        'package': orm.relation(Package,
+            backref=orm.backref('roles'),
+            primaryjoin=authorization_override_table.c.object_id == package_table.c.id,
+            foreign_keys=[authorization_override_table.c.object_id],
+            )
     },
     order_by=[authorization_override_table.c.id],
 )

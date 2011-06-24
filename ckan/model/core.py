@@ -8,19 +8,6 @@ from domain_object import DomainObject
 revision_table = vdm.sqlalchemy.make_revision_table(metadata)
 revision_table.append_column(Column('approved_timestamp', DateTime))
 
-class System(DomainObject):
-    
-    name = 'system'
-    
-    def __unicode__(self):
-        return u'<%s>' % self.__class__.__name__
-    
-    def purge(self):
-        pass
-        
-    @classmethod
-    def by_name(cls, name): 
-        return System()        
 
 # VDM-specific domain objects
 State = vdm.sqlalchemy.State
