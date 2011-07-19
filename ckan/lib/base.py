@@ -46,11 +46,29 @@ def abort(status_code=None, detail='', headers=None, comment=None):
                   headers=headers, 
                   comment=comment)
 
+from ckan.logic import check_access
+
+
 def render(template_name, extra_vars=None, cache_key=None, cache_type=None, 
            cache_expire=None, method='xhtml', loader_class=MarkupTemplate):
     
+    if not extra_vars:
+        extra_vars = {}
+    if not extra_vars.has_key('context'):
+        extra_vars['context'] = {
+            'model': model, 
+            'session': model.Session,
+            'user': c.user or c.author,
+            'extras_as_string': True,
+            'schema': self._form_to_db_schema(),
+        }
+    if not extra_vars.has_key('check_access'):
+        def template_check_access(action, data_dict=None):
+            return check_access(extra_vars['context'], action, data_dict=data_dict)
+        extra_vars['check_access'] = template_check_access
+
     def render_template():
-        globs = extra_vars or {}
+        globs = extra_vars
         globs.update(pylons_globals())
         globs['actions'] = model.Action
         template = globs['app_globals'].genshi_loader.load(template_name,
