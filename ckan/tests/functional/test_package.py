@@ -437,6 +437,7 @@ class TestReadAtRevision(FunctionalTestCase, HtmlCheckMethods):
         cls.date1 = datetime.datetime(2011, 1, 1)
         cls.date2 = datetime.datetime(2011, 1, 2)
         cls.date3 = datetime.datetime(2011, 1, 3)
+        cls.date4 = datetime.datetime(2011, 1, 4)
         cls.today = datetime.datetime.now()
         cls.pkg_name = u'testpkg'
         
@@ -448,7 +449,7 @@ class TestReadAtRevision(FunctionalTestCase, HtmlCheckMethods):
         model.setup_default_user_roles(pkg)
         model.repo.commit_and_remove()
 
-        # edit package
+        # edit package 2
         rev = model.repo.new_revision()
         rev.timestamp = cls.date2
         pkg = model.Package.by_name(cls.pkg_name)
@@ -457,13 +458,20 @@ class TestReadAtRevision(FunctionalTestCase, HtmlCheckMethods):
         pkg.extras = {'key2': u'value2'}
         model.repo.commit_and_remove()
 
-        # edit package again
+        # edit package 3
         rev = model.repo.new_revision()
         rev.timestamp = cls.date3
         pkg = model.Package.by_name(cls.pkg_name)
         pkg.title = u'title3'
         pkg.add_tag_by_name(u'tag3')
         pkg.extras['key2'] = u'value3'
+        model.repo.commit_and_remove()
+
+        # edit package 4
+        rev = model.repo.new_revision()
+        rev.timestamp = cls.date4
+        pkg = model.Package.by_name(cls.pkg_name)
+        pkg.add_tag_by_name(u'tag4')
         model.repo.commit_and_remove()
 
         cls.offset = url_for(controller='package',
@@ -479,6 +487,8 @@ class TestReadAtRevision(FunctionalTestCase, HtmlCheckMethods):
 
     def test_read_normally(self):
         res = self.app.get(self.offset, status=200)
+        main_html = self.main_div(res)
+        assert 'as edited at' not in main_html
         pkg_html = self.named_div('package', res)
         side_html = self.named_div('primary', res)
         print 'PKG', pkg_html
@@ -486,12 +496,17 @@ class TestReadAtRevision(FunctionalTestCase, HtmlCheckMethods):
         assert 'key2' in pkg_html
         assert 'value3' in pkg_html
         print 'SIDE', side_html
+        assert 'tag4' in side_html
         assert 'tag3' in side_html
         assert 'tag2' in side_html
 
     def test_read_date1(self):
         offset = self.offset + self.date1.strftime('@%Y-%m-%d')
         res = self.app.get(offset, status=200)
+        rev_html = self.named_div('revision', res)
+        print 'REV', rev_html
+        expected_date = self.date1.strftime('as edited at %Y-%m-%d %H:%M.')
+        assert expected_date in rev_html, expected_date
         pkg_html = self.named_div('package', res)
         side_html = self.named_div('primary', res)
         print 'PKG', pkg_html
@@ -506,6 +521,10 @@ class TestReadAtRevision(FunctionalTestCase, HtmlCheckMethods):
         date2_plus_3h = self.date2 + datetime.timedelta(hours=3)
         offset = self.offset + date2_plus_3h.strftime('@%Y-%m-%d')
         res = self.app.get(offset, status=200)
+        rev_html = self.named_div('revision', res)
+        print 'REV', rev_html
+        expected_date = self.date2.strftime('as edited at %Y-%m-%d %H:%M.')
+        assert expected_date in rev_html, expected_date
         pkg_html = self.named_div('package', res)
         side_html = self.named_div('primary', res)
         print 'PKG', pkg_html
@@ -519,6 +538,10 @@ class TestReadAtRevision(FunctionalTestCase, HtmlCheckMethods):
     def test_read_date3(self):
         offset = self.offset + self.date3.strftime('@%Y-%m-%d-%H-%M')
         res = self.app.get(offset, status=200)
+        rev_html = self.named_div('revision', res)
+        print 'REV', rev_html
+        expected_date = self.date3.strftime('as edited at %Y-%m-%d %H:%M.')
+        assert expected_date in rev_html, expected_date
         pkg_html = self.named_div('package', res)
         side_html = self.named_div('primary', res)
         print 'PKG', pkg_html
@@ -526,6 +549,25 @@ class TestReadAtRevision(FunctionalTestCase, HtmlCheckMethods):
         assert 'key2' in pkg_html
         assert 'value3' in pkg_html
         print 'SIDE', side_html
+        assert 'tag4' not in side_html
+        assert 'tag3' in side_html
+        assert 'tag2' in side_html
+
+    def test_read_date4(self):
+        offset = self.offset + self.date4.strftime('@%Y-%m-%d-%H-%M')
+        res = self.app.get(offset, status=200)
+        rev_html = self.named_div('revision', res)
+        print 'REV', rev_html
+        expected_date = self.date4.strftime('as edited at %Y-%m-%d %H:%M.')
+        assert expected_date in rev_html, expected_date
+        pkg_html = self.named_div('package', res)
+        side_html = self.named_div('primary', res)
+        print 'PKG', pkg_html
+        assert 'title3' in pkg_html
+        assert 'key2' in pkg_html
+        assert 'value3' in pkg_html
+        print 'SIDE', side_html
+        assert 'tag4' in side_html
         assert 'tag3' in side_html
         assert 'tag2' in side_html
 
