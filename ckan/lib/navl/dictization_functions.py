@@ -206,7 +206,7 @@ def _remove_blank_keys(schema):
     return schema
 
 def validate(data, schema, context=None):
-    '''validate an unflattened nested dict agiast a schema'''
+    '''validate an unflattened nested dict against a schema'''
 
     context = context or {}
 

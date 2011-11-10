@@ -1,13 +1,26 @@
 import re
 import json
-from pprint import pprint, pformat
+from pprint import pprint
+import copy
+
 from nose.tools import assert_equal
 
 import ckan
 from ckan.lib.create_test_data import CreateTestData
 import ckan.model as model
 from ckan.tests import WsgiAppCase
-from ckan.tests.functional.api import assert_dicts_equal_ignoring_ordering, change_lists_to_sets
+from ckan.tests.functional.api import flatten_resource_extras, assert_iterables_equal, change_lists_to_sets
+
+# package dict keys that are created when automatically a package
+# is created.
+auto_generated_keys = set(
+    ('revision_id', 'revision_timestamp', 'relationships_as_object',
+     'state', 'id', 'groups', 'relationships_as_subject',
+     u'mimetype', u'resource_group_id', u'name', u'cache_last_updated',
+     u'cache_url', u'webstore_url', u'mimetype_inner',
+     u'webstore_last_updated', u'last_modified', u'resource_type',
+     'package_id'))
+    
 
 class TestAction(WsgiAppCase):
 
@@ -35,11 +48,12 @@ class TestAction(WsgiAppCase):
     def test_01_package_list(self):
         postparams = '%s=1' % json.dumps({})
         res = self.app.post('/api/action/package_list', params=postparams)
-        assert_dicts_equal_ignoring_ordering(
+        assert_iterables_equal(
             json.loads(res.body),
             {"help": "Lists packages by name or id",
              "success": True,
-             "result": ["annakarenina", "warandpeace"]})
+             "result": ["annakarenina", "warandpeace"]},
+            ignore_list_order=True)
 
     def test_01_package_show(self):
         anna_id = model.Package.by_name(u'annakarenina').id
@@ -50,8 +64,31 @@ class TestAction(WsgiAppCase):
         assert_equal(res_dict['help'], None)
         pkg = res_dict['result']
         assert_equal(pkg['name'], 'annakarenina')
-        missing_keys = set(('title', 'groups')) - set(pkg.keys())
+        missing_keys = set(('title', 'groups', 'extras')) - set(pkg.keys())
         assert not missing_keys, missing_keys
+        assert_iterables_equal(pkg['extras'],
+                               [{'key': 'genre', 'value': 'romantic novel'},
+                                {'key': 'original media', 'value': 'book'}],
+                               ignore_list_order=True,
+                               keys_to_ignore=('id', 'revision_timestamp',
+                                               'revision_id', 'state', 'package_id'))
+        resources = model.Package.by_name(u'annakarenina').resources
+        for resource in resources:
+            if resource.format==u'plain text':
+                full_text_resource = resource
+                break
+        else:
+            assert 0, 'Could not find plain text resource for anna'
+        expected_size = resource.extras['size_extra']
+                             
+        for resource in pkg['resources']:
+            if resource['format'] == u'plain text':
+                assert resource['extras'].has_key('size_extra')
+                assert_equal(resource['extras']['size_extra'], expected_size)
+                break
+        else:
+            assert 0, 'Could not find plain text resource for anna'
+                
 
     def test_01_package_show_with_jsonp(self):
         anna_id = model.Package.by_name(u'annakarenina').id
@@ -78,11 +115,10 @@ class TestAction(WsgiAppCase):
         assert res_obj['result'][0]['name'] == 'warandpeace'
 
     def test_03_create_update_package(self):
-
         package = {
             'author': None,
             'author_email': None,
-            'extras': [{'key': u'original media','value': u'"book"'}],
+            'extras': [{'key': u'original media', 'value': u'"book"'}],
             'license_id': u'other-open',
             'maintainer': None,
             'maintainer_email': None,
@@ -108,23 +144,25 @@ class TestAction(WsgiAppCase):
             'version': u'0.7a'
         }
 
-        wee = json.dumps(package)
         postparams = '%s=1' % json.dumps(package)
         res = self.app.post('/api/action/package_create', params=postparams,
                             extra_environ={'Authorization': 'tester'})
         package_created = json.loads(res.body)['result']
-        print package_created
+        expected_package = flatten_resource_extras(package)
+        assert_iterables_equal(package_created, expected_package,
+                               ignore_list_order=True,
+                               keys_to_ignore=auto_generated_keys)
+                               
         package_created['name'] = 'moo'
         postparams = '%s=1' % json.dumps(package_created)
         res = self.app.post('/api/action/package_update', params=postparams,
                             extra_environ={'Authorization': 'tester'})
 
         package_updated = json.loads(res.body)['result']
-        package_updated.pop('revision_id')
-        package_updated.pop('revision_timestamp')
-        package_created.pop('revision_id')
-        package_created.pop('revision_timestamp')
-        assert package_updated == package_created#, (pformat(json.loads(res.body)), pformat(package_created['result']))
+        assert_iterables_equal(package_updated, package_created,
+                           ignore_list_order=True,
+                           keys_to_ignore=('revision_id',
+                                           'revision_timestamp'))
 
     def test_18_create_package_not_authorized(self):
 
@@ -140,7 +178,6 @@ class TestAction(WsgiAppCase):
             'url': u'http://www.annakarenina.com',
         }
 
-        wee = json.dumps(package)
         postparams = '%s=1' % json.dumps(package)
         res = self.app.post('/api/action/package_create', params=postparams,
                                      status=self.STATUS_403_ACCESS_DENIED)
@@ -218,11 +255,13 @@ class TestAction(WsgiAppCase):
     def test_06_tag_list(self):
         postparams = '%s=1' % json.dumps({})
         res = self.app.post('/api/action/tag_list', params=postparams)
-        assert_dicts_equal_ignoring_ordering(
+        assert_iterables_equal(
             json.loads(res.body),
             {'help': 'Returns a list of tags',
              'success': True,
-             'result': ['russian', 'tolstoy']})
+             'result': ['russian', 'tolstoy']},
+            ignore_list_order=True
+            )
         #Get all fields
         postparams = '%s=1' % json.dumps({'all_fields':True})
         res = self.app.post('/api/action/tag_list', params=postparams)
@@ -423,7 +462,7 @@ class TestAction(WsgiAppCase):
         postparams = '%s=1' % json.dumps({})
         res = self.app.post('/api/action/group_list', params=postparams)
         res_obj = json.loads(res.body)
-        assert_dicts_equal_ignoring_ordering(
+        assert_iterables_equal(
             res_obj,
             {
                 'result': [
@@ -432,7 +471,8 @@ class TestAction(WsgiAppCase):
                     ],
                 'help': 'Returns a list of groups',
                 'success': True
-            })
+            },
+            ignore_list_order=True)
         
         #Get all fields
         postparams = '%s=1' % json.dumps({'all_fields':True})
@@ -578,13 +618,32 @@ class TestAction(WsgiAppCase):
         resource_updated = json.loads(res.body)['result']
         assert resource_updated['url'] == new_resource_url, resource_updated
 
-        resource_updated.pop('url')
-        resource_updated.pop('revision_id')
-        resource_updated.pop('revision_timestamp')
-        resource_created.pop('url')
-        resource_created.pop('revision_id')
-        resource_created.pop('revision_timestamp')
-        assert resource_updated == resource_created
+        assert_iterables_equal(resource_updated, resource_created,
+                           ignore_list_order=True,
+                           keys_to_ignore=('url', 'revision_id',
+                                           'revision_timestamp'))
+
+    def test_19_update_resource_validation_error(self):
+        package = {
+            'name': u'validation_error',
+            'resources': [{
+                'description': u'Main sheet.',
+                'extras': {u'last_modified': u'wednesday', # should be iso date
+                           u'testkey': u'testvalue'}, 
+                'format': u'csv',
+                'url': u'http://test.com/sheet.csv'
+            }],
+            'title': u'test19a',
+        }
+
+        postparams = '%s=1' % json.dumps(package)
+        res = self.app.post('/api/action/package_create', params=postparams,
+                            extra_environ={'Authorization': 'tester'})
+        res = json.loads(res.body)
+#        import pdb; pdb.set_trace()
+        assert_equal(res['success'], False)
+        import pdb; pdb.set_trace()
+
 
     def test_20_status_show(self):
         postparams = '%s=1' % json.dumps({})

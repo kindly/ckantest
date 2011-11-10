@@ -55,6 +55,7 @@ def package_create(context, data_dict):
     else:
         rev.message = _(u'REST API: Create object %s') % data.get("name")
 
+    import pdb; pdb.set_trace()
     pkg = package_dict_save(data, context)
     admins = []
     if user:

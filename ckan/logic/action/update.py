@@ -38,7 +38,7 @@ def package_error_summary(error_dict):
     error_summary = {}
     for key, error in error_dict.iteritems():
         if key == 'resources':
-            error_summary[_('Resources')] = _('Package resource(s) incomplete')
+            error_summary[_('Resources')] = _('Resource error')
         elif key == 'extras':
             error_summary[_('Extras')] = _('Missing Value')
         elif key == 'extras_validation':
